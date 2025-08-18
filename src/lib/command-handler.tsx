@@ -15,9 +15,12 @@ const formatOutput = (title: string, data: any) => {
   if (Array.isArray(data)) {
     output += data
       .map((item) => {
-        return Object.entries(item)
-          .map(([key, value]) => `${key}: ${value}`)
-          .join("\n");
+        if (typeof item === 'object' && item !== null) {
+          return Object.entries(item)
+            .map(([key, value]) => `${key}: ${value}`)
+            .join("\n");
+        }
+        return item;
       })
       .join("\n\n");
   } else if (typeof data === "object" && data !== null) {
@@ -43,7 +46,7 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
         return [{ type: "output", content: output }];
     }
     if (variables[section]) {
-        return [{ type: "output", content: variables[section] }];
+        return [{ type: "output", content: formatOutput(section, variables[section]) }];
     }
     return [{ type: "error", content: `Error: Section or variable '${section}' not found.` }];
   },
@@ -52,7 +55,7 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
   showcontact: async () => [{ type: "output", content: formatOutput("Contact", content.contact) }],
   showactivities: async () => [{ type: "output", content: formatOutput("Activities", content.activities) }],
   about: async () => [{ type: "output", content: formatOutput("About Me", content.about) }],
-  project: async () => [{ type: "output", content: formatOutput("Projects", content.projects) }],
+  projects: async () => [{ type: "output", content: formatOutput("Projects", content.projects) }],
   experience: async () => [{ type: "output", content: formatOutput("Experience", content.experience) }],
   skills: async () => [{ type: "output", content: formatOutput("Skills", content.skills) }],
   education: async () => [{ type: "output", content: formatOutput("Education", content.education) }],
@@ -63,11 +66,20 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
   clear: async () => [],
   feedback: async () => [{ type: "component", content: <FeedbackForm /> }],
   feedbackforme: async () => [{ type: "error", content: "This command is for administrative use." }],
-  makecopy: async (args) => {
+  makecopy: async (args, variables) => {
     if (args.length === 0) return [{ type: "error", content: "Usage: makeCopy(variableName)" }];
-    // This part is a bit tricky without access to variables state directly
-    // This will be handled in the calling function.
-    return [{ type: "output", content: "Preparing printable copy..." }];
+    const varName = args[0];
+    if (!varName || !variables[varName]) {
+        return [{ type: "error", content: `Variable '${varName}' not found. Usage: makeCopy(variableName)` }];
+    }
+    const contentToPrint = variables[varName];
+    const printableDiv = document.createElement('div');
+    printableDiv.className = 'printable';
+    printableDiv.innerHTML = `<h1>Printable Copy</h1><pre>${typeof contentToPrint === 'string' ? contentToPrint : JSON.stringify(contentToPrint, null, 2)}</pre>`;
+    document.body.appendChild(printableDiv);
+    window.print();
+    document.body.removeChild(printableDiv);
+    return [{ type: "success", content: "Print dialog opened." }];
   },
   back: async () => {
     // Logic handled in useTerminal hook
@@ -80,7 +92,13 @@ const allCommands = Object.keys(commands);
 export const getSuggestions = (input: string): string[] => {
   const command = input.split("(")[0].toLowerCase();
   if (!input) return [];
-  return allCommands.filter((c) => c.startsWith(command)).map(cmd => cmd + "()");
+  if (input.includes('(')) return [];
+
+  const suggestions = allCommands.filter((c) => c.startsWith(command));
+  if (suggestions.length > 0) {
+    return suggestions.map(cmd => cmd + "()");
+  }
+  return [];
 };
 
 export const handleCommand = async (
@@ -98,7 +116,7 @@ export const handleCommand = async (
     return [];
   }
   
-  if (commandStr.toLowerCase() === 'back') {
+  if (commandStr.toLowerCase() === 'back()') {
     if (commandStack.length > 1) {
       const newStack = commandStack.slice(0, -1);
       setCommandStack(newStack);
@@ -119,17 +137,32 @@ export const handleCommand = async (
 
     // Temporarily handle command to get output
     const tempLines = await handleCommand(cmdStr, variables, setVariables, lines, setLines, commandStack, setCommandStack);
+    
+    // Check for component output first
+    const componentLine = tempLines.find(line => line.type === 'component');
+    if (componentLine) {
+        return [{ type: "error", content: `Cannot store component output in variable '${varName}'.` }];
+    }
+
     const outputContent = tempLines
       .filter(line => line.type === 'output' && typeof line.content === 'string')
       .map(line => line.content)
       .join('\n');
     
-    const finalOutput = outputContent;
-
-    if (finalOutput) {
-      setVariables({ ...variables, [varName]: finalOutput });
+    if (outputContent) {
+      setVariables({ ...variables, [varName]: outputContent });
       return [{ type: "success", content: `Stored output in variable '${varName}'.` }];
     } else {
+      // Try to get raw data from commands that return structured data
+      const match = cmdStr.match(/^([a-zA-Z_]+)\((.*)\)$/);
+       if (match) {
+        const [, command] = match;
+        const sectionContent = (content as any)[command.toLowerCase()];
+        if(sectionContent) {
+          setVariables({ ...variables, [varName]: sectionContent });
+          return [{ type: "success", content: `Stored data in variable '${varName}'.` }];
+        }
+      }
       return [{ type: "error", content: `Command '${cmdStr}' produced no storable output.` }];
     }
   }
@@ -152,20 +185,6 @@ export const handleCommand = async (
   const args = argsString ? argsString.split(",").map((arg) => arg.trim().replace(/^['"]|['"]$/g, "")) : [];
   
   const cmdFunc = commands[command.toLowerCase()];
-
-  if (command.toLowerCase() === 'makecopy') {
-      const varName = args[0];
-      if (!varName || !variables[varName]) {
-          return [{ type: "error", content: "Variable not found. Usage: makeCopy(variableName)" }];
-      }
-      const printableDiv = document.createElement('div');
-      printableDiv.className = 'printable';
-      printableDiv.innerHTML = `<h1>Printable Copy</h1><pre>${variables[varName]}</pre>`;
-      document.body.appendChild(printableDiv);
-      window.print();
-      document.body.removeChild(printableDiv);
-      return [{ type: "success", content: "Print dialog opened." }];
-  }
 
   if (cmdFunc) {
     return cmdFunc(args, variables, setVariables);

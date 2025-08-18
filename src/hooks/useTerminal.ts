@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { handleCommand, getSuggestions, Line } from "@/lib/command-handler";
 
 export const useTerminal = () => {
@@ -75,11 +75,20 @@ export const useTerminal = () => {
     } else if (e.key === "Tab") {
       e.preventDefault();
       const suggestions = getSuggestions(input);
-      if (suggestions.length > 0) {
+      if (suggestions.length === 1) {
         setInput(suggestions[0]);
       }
     }
   };
+
+  useEffect(() => {
+    const storedHistory = localStorage.getItem("commandHistory");
+    if (storedHistory) {
+      const parsedHistory = JSON.parse(storedHistory);
+      setCommandHistory(parsedHistory);
+      setLastCommandIndex(parsedHistory.length);
+    }
+  }, []);
 
   return {
     lines,

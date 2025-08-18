@@ -4,6 +4,8 @@ import React, { useRef, useEffect } from "react";
 import { useTerminal } from "@/hooks/useTerminal";
 import { Line } from "@/lib/command-handler";
 import { Card, CardContent } from "@/components/ui/card";
+import TypingEffect from "./TypingEffect";
+
 
 export function Terminal() {
   const {
@@ -11,8 +13,6 @@ export function Terminal() {
     input,
     setInput,
     handleKeyDown,
-    setCommandHistory,
-    setLastCommandIndex,
   } = useTerminal();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -29,15 +29,6 @@ export function Terminal() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [lines]);
-
-  useEffect(() => {
-    const storedHistory = localStorage.getItem("commandHistory");
-    if (storedHistory) {
-      const parsedHistory = JSON.parse(storedHistory);
-      setCommandHistory(parsedHistory);
-      setLastCommandIndex(parsedHistory.length);
-    }
-  }, [setCommandHistory, setLastCommandIndex]);
 
   const focusInput = () => {
     if (inputRef.current) {
