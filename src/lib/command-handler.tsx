@@ -96,7 +96,7 @@ export const getSuggestions = (input: string): string[] => {
 
   const suggestions = allCommands.filter((c) => c.startsWith(command));
   if (suggestions.length > 0) {
-    return suggestions.map(cmd => cmd + "()");
+    return suggestions.map(cmd => cmd);
   }
   return [];
 };
@@ -110,15 +110,14 @@ export const handleCommand = async (
   commandStack: Line[][],
   setCommandStack: Function
 ): Promise<Line[]> => {
-  const trimmedCommand = commandStr.trim();
+  const trimmedCommand = commandStr.trim().replace(/;$/, "");
   
   if (trimmedCommand.toLowerCase() === 'clear') {
     setLines([]);
     return [];
   }
   
-  const backMatch = trimmedCommand.match(/^back\(\s*\);?$/);
-  if (backMatch) {
+  if (trimmedCommand.toLowerCase() === 'back' || trimmedCommand.toLowerCase() === 'back()') {
     if (commandStack.length > 1) {
       const newStack = commandStack.slice(0, -1);
       setCommandStack(newStack);
@@ -156,7 +155,7 @@ export const handleCommand = async (
       return [{ type: "success", content: `Stored output in variable '${varName}'.` }];
     } else {
       // Try to get raw data from commands that return structured data
-      const match = cmdStr.match(/^([a-zA-Z_]+)\((.*)\);?$/);
+      const match = cmdStr.match(/^([a-zA-Z_]+)\(.*\)$/);
        if (match) {
         const [, command] = match;
         const sectionContent = (content as any)[command.toLowerCase()];
@@ -169,13 +168,13 @@ export const handleCommand = async (
     }
   }
 
-  const match = trimmedCommand.match(/^([a-zA-Z_]+)\((.*)\);?$/);
+  const match = trimmedCommand.match(/^([a-zA-Z_]+)(?:\((.*)\))?$/);
 
   if (!match) {
       try {
           const result = await generateReasonedErrorMessage({
               unexpectedValue: trimmedCommand,
-              context: "User tried to run a command in the terminal. The command syntax is likely incorrect. It should be command(arguments).",
+              context: "User tried to run a command in the terminal. The command syntax is likely incorrect. It should be command or command(arguments).",
           });
           return [{ type: "error", content: result.errorMessage }];
       } catch (e) {
