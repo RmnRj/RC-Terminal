@@ -10,7 +10,6 @@ export function Terminal() {
   const {
     lines,
     input,
-    setInput,
     handleKeyDown,
     suggestion,
     handleInputChange,
