@@ -3,7 +3,6 @@
 import React from "react";
 import { generateReasonedErrorMessage } from "@/ai/flows/reasoned-error-messages";
 import * as content from "./content";
-import TypingEffect from "@/components/TypingEffect";
 import FeedbackForm from "@/components/FeedbackForm";
 
 export interface Line {
@@ -33,7 +32,7 @@ const formatOutput = (title: string, data: any) => {
 
 const commands: { [key: string]: (args: string[], variables: any, setVariables: Function) => Promise<Line[]> } = {
   help: async () => [
-    { type: "output", content: <TypingEffect text={content.helpText} /> },
+    { type: "output", content: content.helpText },
   ],
   open: async (args, variables) => {
     if (args.length === 0) return [{ type: "error", content: "Error: open() requires a section name. Try 'open(projects)'." }];
@@ -41,22 +40,22 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
     const sectionContent = (content as any)[section];
     if (sectionContent) {
         const output = formatOutput(section, sectionContent);
-        return [{ type: "output", content: <TypingEffect text={output} /> }];
+        return [{ type: "output", content: output }];
     }
     if (variables[section]) {
-        return [{ type: "output", content: <TypingEffect text={variables[section]} /> }];
+        return [{ type: "output", content: variables[section] }];
     }
     return [{ type: "error", content: `Error: Section or variable '${section}' not found.` }];
   },
-  showname: async () => [{ type: "output", content: <TypingEffect text={content.fullName} /> }],
+  showname: async () => [{ type: "output", content: content.fullName }],
   showimage: async () => [{ type: "output", content: "showImage() is not implemented yet." }],
-  showcontact: async () => [{ type: "output", content: <TypingEffect text={formatOutput("Contact", content.contact)} /> }],
-  showactivities: async () => [{ type: "output", content: <TypingEffect text={formatOutput("Activities", content.activities)} /> }],
-  about: async () => [{ type: "output", content: <TypingEffect text={formatOutput("About Me", content.about)} /> }],
-  project: async () => [{ type: "output", content: <TypingEffect text={formatOutput("Projects", content.projects)} /> }],
-  experience: async () => [{ type: "output", content: <TypingEffect text={formatOutput("Experience", content.experience)} /> }],
-  skills: async () => [{ type: "output", content: <TypingEffect text={formatOutput("Skills", content.skills)} /> }],
-  education: async () => [{ type: "output", content: <TypingEffect text={formatOutput("Education", content.education)} /> }],
+  showcontact: async () => [{ type: "output", content: formatOutput("Contact", content.contact) }],
+  showactivities: async () => [{ type: "output", content: formatOutput("Activities", content.activities) }],
+  about: async () => [{ type: "output", content: formatOutput("About Me", content.about) }],
+  project: async () => [{ type: "output", content: formatOutput("Projects", content.projects) }],
+  experience: async () => [{ type: "output", content: formatOutput("Experience", content.experience) }],
+  skills: async () => [{ type: "output", content: formatOutput("Skills", content.skills) }],
+  education: async () => [{ type: "output", content: formatOutput("Education", content.education) }],
   history: async () => {
     const history = JSON.parse(localStorage.getItem("commandHistory") || "[]");
     return [{ type: "output", content: history.join("\n") }];
@@ -81,7 +80,7 @@ const allCommands = Object.keys(commands);
 export const getSuggestions = (input: string): string[] => {
   const command = input.split("(")[0].toLowerCase();
   if (!input) return [];
-  return allCommands.filter((c) => c.startsWith(command));
+  return allCommands.filter((c) => c.startsWith(command)).map(cmd => cmd + "()");
 };
 
 export const handleCommand = async (
@@ -125,14 +124,7 @@ export const handleCommand = async (
       .map(line => line.content)
       .join('\n');
     
-    // Check if the output is from a TypingEffect component
-    const typingEffectOutput = tempLines
-      .filter(line => line.type === 'output' && React.isValidElement(line.content) && (line.content.type === TypingEffect))
-      // @ts-ignore
-      .map(line => line.content.props.text)
-      .join('\n');
-      
-    const finalOutput = outputContent || typingEffectOutput;
+    const finalOutput = outputContent;
 
     if (finalOutput) {
       setVariables({ ...variables, [varName]: finalOutput });
@@ -142,10 +134,23 @@ export const handleCommand = async (
     }
   }
 
-  const [command, ...rest] = commandStr.split(" ");
-  const argsWithParentheses = rest.join(" ");
-  const argsMatch = argsWithParentheses.match(/\((.*)\)/);
-  const args = argsMatch ? argsMatch[1].split(",").map((arg) => arg.trim()) : [];
+  const match = commandStr.match(/^([a-zA-Z_]+)\((.*)\)$/);
+
+  if (!match) {
+      try {
+          const result = await generateReasonedErrorMessage({
+              unexpectedValue: commandStr,
+              context: "User tried to run a command in the terminal. The command syntax is likely incorrect. It should be command(args).",
+          });
+          return [{ type: "error", content: result.errorMessage }];
+      } catch (e) {
+          return [{ type: "error", content: `Error: command not found or invalid syntax: ${commandStr}. Try 'help'.` }];
+      }
+  }
+
+  const [, command, argsString] = match;
+  const args = argsString ? argsString.split(",").map((arg) => arg.trim().replace(/^['"]|['"]$/g, "")) : [];
+  
   const cmdFunc = commands[command.toLowerCase()];
 
   if (command.toLowerCase() === 'makecopy') {
