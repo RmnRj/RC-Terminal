@@ -115,34 +115,32 @@ export const getSuggestions = (input: string, variables: Record<string, any>): s
     if (!input) return "";
 
     const commandCandidates = [...allCommands, ...Object.keys(variables)];
+    const commandsWithArgs = ['open', 'printcopy'];
     
     const openRegex = /^(open\()([^)]*)$/;
     const openMatch = input.match(openRegex);
 
     if (openMatch) {
-        const prefix = openMatch[1]; // e.g., "open("
+        const prefix = openMatch[1];
         const argsPart = openMatch[2];
         const args = argsPart.split(',').map(a => a.trim());
         const currentArg = args[args.length - 1];
 
-        const usedArgs = new Set(args.slice(0, args.length - 1));
-        const availableSuggestions = allowedOpenArgs.filter(key => !usedArgs.has(key));
-
         if (currentArg) {
+            const usedArgs = new Set(args.slice(0, args.length - 1));
+            const availableSuggestions = allowedOpenArgs.filter(key => !usedArgs.has(key));
             const suggestion = availableSuggestions.find(s => s.startsWith(currentArg));
+
             if (suggestion) {
                 const completedArgs = [...args.slice(0, -1), suggestion].join(', ');
                 return `${prefix}${completedArgs}`;
             }
         }
-        return ""; // No suggestion if current arg is empty or no match
+        return "";
     }
 
-    // Handle top-level command suggestions
     const suggestion = commandCandidates.find(c => c.startsWith(input));
     if (suggestion) {
-        // For commands that take arguments, suggest adding parentheses
-        const commandsWithArgs = ['open', 'printcopy'];
         if (commandsWithArgs.includes(suggestion) && input === suggestion) {
             return `${suggestion}()`;
         }
@@ -224,7 +222,7 @@ export const handleCommand = async (
   const cmdFunc = commands[command.toLowerCase()];
 
   if (cmdFunc) {
-      const args = (argsString === undefined || argsString.trim() === '') 
+      const args = (argsString === undefined || argsString === null || argsString.trim() === '') 
         ? [] 
         : argsString.split(",").map((arg) => arg.trim().replace(/^['"]|['"]$/g, ""));
       return cmdFunc(args, variables, setVariables);
