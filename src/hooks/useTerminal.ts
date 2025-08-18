@@ -80,6 +80,17 @@ export const useTerminal = () => {
         }
     }
   };
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInput(value);
+    if (value) {
+      const newSuggestion = getSuggestions(value, variables);
+      setSuggestion(newSuggestion);
+    } else {
+      setSuggestion("");
+    }
+  };
 
   useEffect(() => {
     const storedHistory = localStorage.getItem("commandHistory");
@@ -89,15 +100,6 @@ export const useTerminal = () => {
       setLastCommandIndex(parsedHistory.length);
     }
   }, []);
-  
-  useEffect(() => {
-    if (input) {
-      const newSuggestion = getSuggestions(input, variables);
-      setSuggestion(newSuggestion);
-    } else {
-      setSuggestion("");
-    }
-  }, [input, variables]);
 
   return {
     lines,
@@ -108,5 +110,6 @@ export const useTerminal = () => {
     handleKeyDown,
     setCommandHistory,
     setLastCommandIndex,
+    handleInputChange,
   };
 };

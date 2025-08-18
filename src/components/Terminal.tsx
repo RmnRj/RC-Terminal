@@ -13,6 +13,7 @@ export function Terminal() {
     setInput,
     handleKeyDown,
     suggestion,
+    handleInputChange,
   } = useTerminal();
   const [isTyping, setIsTyping] = useState(false);
 
@@ -106,17 +107,17 @@ export function Terminal() {
                 ref={inputRef}
                 type="text"
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 className="bg-transparent border-none focus:ring-0 outline-none w-full caret-accent z-10"
                 autoComplete="off"
                 aria-label="Terminal input"
                 disabled={isTyping}
               />
-              {suggestion && (
+              {suggestion && input && (
                 <div className="absolute left-[calc(1ch+1rem)] top-0 text-muted-foreground/50 pointer-events-none">
-                  {input}
-                  <span className="text-muted-foreground/50">{suggestion.substring(input.length)}</span>
+                  <span className="invisible">{input}</span>
+                  <span>{suggestion.substring(input.length)}</span>
                 </div>
               )}
             </div>
