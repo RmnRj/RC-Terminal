@@ -76,7 +76,9 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
   feedback: async () => [{ type: "component", content: <FeedbackForm /> }],
   feedbackforme: async () => [{ type: "error", content: "This command is for administrative use." }],
   printcopy: async (args, variables) => {
-    if (args.length === 0) return [{ type: "error", content: "Usage: printCopy(variableOrSectionName)" }];
+    if (args.length === 0 || (args.length === 1 && args[0] === '')) {
+        return [{ type: "error", content: "Usage: printCopy(variableOrSectionName)" }];
+    }
     
     const arg = args[0];
     const disallowedCommands = ['clear', 'history', 'help', 'feedback', 'feedbackforme', 'printcopy'];
@@ -84,14 +86,15 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
         return [{ type: "error", content: `Cannot print content from '${arg}'.` }];
     }
 
-    let contentToPrint = '';
+    let contentToPrint: any = '';
+    const lowerArg = arg.toLowerCase();
 
     if (variables[arg]) {
         contentToPrint = variables[arg];
-    } else if ((content as any)[arg.toLowerCase()]) {
-        contentToPrint = formatOutput(arg, (content as any)[arg.toLowerCase()]);
-    } else if (commands[arg.toLowerCase()]) {
-        const lines = await commands[arg.toLowerCase()]([], variables, () => {});
+    } else if ((content as any)[lowerArg]) {
+        contentToPrint = formatOutput(arg, (content as any)[lowerArg]);
+    } else if (commands[lowerArg]) {
+        const lines = await commands[lowerArg]([], variables, () => {});
         contentToPrint = lines.map(l => l.content).join('\n');
     } else {
         return [{ type: "error", content: `Variable or section '${arg}' not found.` }];
@@ -114,39 +117,53 @@ const allowedOpenArgs = allDataKeys.filter(key => key !== 'fullName');
 export const getSuggestions = (input: string, variables: Record<string, any>): string => {
     if (!input) return "";
 
-    const commandCandidates = [...allCommands, ...Object.keys(variables)];
     const commandsWithArgs = ['open', 'printcopy'];
-    
-    const openRegex = /^(open\()([^)]*)$/;
-    const openMatch = input.match(openRegex);
 
+    // Regex to match 'open(arg1, arg2, ...'
+    const openRegex = /^open\(([^)]*)$/;
+    const openMatch = input.match(openRegex);
+    
     if (openMatch) {
-        const prefix = openMatch[1];
-        const argsPart = openMatch[2];
+        const argsPart = openMatch[1];
         const args = argsPart.split(',').map(a => a.trim());
         const currentArg = args[args.length - 1];
 
+        const usedArgs = new Set(args.slice(0, args.length - 1));
+        const availableSuggestions = allowedOpenArgs.filter(key => !usedArgs.has(key));
+        
         if (currentArg) {
-            const usedArgs = new Set(args.slice(0, args.length - 1));
-            const availableSuggestions = allowedOpenArgs.filter(key => !usedArgs.has(key));
             const suggestion = availableSuggestions.find(s => s.startsWith(currentArg));
-
             if (suggestion) {
-                const completedArgs = [...args.slice(0, -1), suggestion].join(', ');
-                return `${prefix}${completedArgs}`;
+                return suggestion;
             }
         }
         return "";
     }
+    
+    // Regex for printcopy
+    const printCopyRegex = /^(printcopy\()([^)]*)$/;
+    const printCopyMatch = input.match(printCopyRegex);
+    if (printCopyMatch) {
+        const arg = printCopyMatch[2].trim();
+        const candidates = [...allDataKeys, ...Object.keys(variables)];
+        if (arg) {
+            const suggestion = candidates.find(c => c.startsWith(arg));
+            if (suggestion) return suggestion;
+        }
+        return "";
+    }
 
+    // Default command suggestion
+    const commandCandidates = [...allCommands, ...Object.keys(variables)];
     const suggestion = commandCandidates.find(c => c.startsWith(input));
+
     if (suggestion) {
         if (commandsWithArgs.includes(suggestion) && input === suggestion) {
             return `${suggestion}()`;
         }
         return suggestion;
     }
-    
+
     return "";
 };
 
@@ -238,3 +255,5 @@ export const handleCommand = async (
     }
   }
 };
+
+    

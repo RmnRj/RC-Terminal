@@ -29,6 +29,7 @@ export const useTerminal = () => {
     async (commandStr: string) => {
       addToHistory(commandStr);
       setInput("");
+      setSuggestion("");
 
       const currentLines = [...lines, { type: "input" as const, content: commandStr }];
       setLines(currentLines);
@@ -49,7 +50,16 @@ export const useTerminal = () => {
     if (e.key === "Enter") {
       e.preventDefault();
       if (suggestion) {
-        setInput(suggestion);
+        const openRegex = /^open\(([^)]*)$/;
+        const openMatch = input.match(openRegex);
+        if (openMatch) {
+            const argsPart = openMatch[1];
+            const args = argsPart.split(',').map(a => a.trim());
+            const completedArgs = [...args.slice(0, -1), suggestion].join(', ');
+            setInput(`open(${completedArgs})`);
+        } else {
+            setInput(suggestion);
+        }
         setSuggestion("");
       } else {
         processCommand(input.trim());
@@ -59,6 +69,7 @@ export const useTerminal = () => {
       if (commandHistory.length > 0) {
         const newIndex = Math.max(0, lastCommandIndex - 1);
         setInput(commandHistory[newIndex] || "");
+        setSuggestion("");
         setLastCommandIndex(newIndex);
       }
     } else if (e.key === "ArrowDown") {
@@ -69,21 +80,32 @@ export const useTerminal = () => {
           lastCommandIndex + 1
         );
         setInput(commandHistory[newIndex] || "");
+        setSuggestion("");
         setLastCommandIndex(newIndex);
       } else {
          setInput("");
+         setSuggestion("");
          setLastCommandIndex(commandHistory.length);
       }
     } else if (e.key === "Tab" || e.key === "ArrowRight") {
         if (suggestion && inputRef.current?.selectionStart === input.length) {
             e.preventDefault();
-            setInput(suggestion);
+            const openRegex = /^open\(([^)]*)$/;
+            const openMatch = input.match(openRegex);
+             if (openMatch) {
+                const argsPart = openMatch[1];
+                const args = argsPart.split(',').map(a => a.trim());
+                const completedArgs = [...args.slice(0, -1), suggestion].join(', ');
+                setInput(`open(${completedArgs}`);
+            } else {
+                 setInput(suggestion);
+            }
+            setSuggestion("");
         }
     } else if (e.key === "(") {
         e.preventDefault();
         const newInputValue = input + "()";
         setInput(newInputValue);
-        // We need a slight delay to ensure the input value updates before we set the cursor
         setTimeout(() => {
           if (inputRef.current) {
             inputRef.current.selectionStart = newInputValue.length - 1;
@@ -132,3 +154,5 @@ export const useTerminal = () => {
     inputRef,
   };
 };
+
+    
