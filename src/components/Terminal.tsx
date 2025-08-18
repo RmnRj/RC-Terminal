@@ -15,6 +15,7 @@ export function Terminal() {
     handleInputChange,
   } = useTerminal();
   const [isTyping, setIsTyping] = useState(false);
+  const [animatedLines, setAnimatedLines] = useState<Line[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -29,7 +30,40 @@ export function Terminal() {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [lines, isTyping]);
+  }, [animatedLines, isTyping]);
+  
+  useEffect(() => {
+    const lastLine = lines[lines.length - 1];
+    if (lastLine && (lastLine.type === 'output' || lastLine.type === 'success') && typeof lastLine.content === 'string' && lastLine.content.length > 0) {
+      setIsTyping(true);
+      const newLines = lastLine.content.split('\n').map(lineContent => ({
+        ...lastLine,
+        content: lineContent,
+      }));
+      
+      const previousLines = lines.slice(0, lines.length -1);
+      
+      setAnimatedLines([...previousLines, {type: lastLine.type, content: ''}]); // Start with the last line empty
+      
+      let currentAnimatedLines = [...previousLines];
+
+      const animate = (index: number) => {
+        if (index < newLines.length) {
+            currentAnimatedLines.push(newLines[index]);
+            setAnimatedLines([...currentAnimatedLines]);
+            setTimeout(() => animate(index + 1), 50); // Delay between lines
+        } else {
+            setIsTyping(false);
+        }
+      }
+      animate(0);
+
+    } else {
+       setAnimatedLines(lines);
+       setIsTyping(false);
+    }
+  }, [lines]);
+
 
   const focusInput = () => {
     if (inputRef.current) {
@@ -37,12 +71,7 @@ export function Terminal() {
     }
   };
   
-  const handleTypingComplete = () => {
-    setIsTyping(false);
-  }
-
   const renderLine = (line: Line, index: number) => {
-    const isLastLine = index === lines.length - 1;
     switch (line.type) {
       case "input":
         return (
@@ -60,14 +89,6 @@ export function Terminal() {
             : line.type === "success"
             ? "text-green-400"
             : "text-foreground";
-
-        if (isLastLine && typeof line.content === 'string' && line.type !== 'error') {
-            return (
-                 <div key={index} className={`${colorClass} whitespace-pre-wrap`}>
-                    <TypingEffect text={line.content} onFinished={handleTypingComplete} />
-                 </div>
-            )
-        }
         
         return (
           <div
@@ -84,13 +105,6 @@ export function Terminal() {
     }
   };
   
-  useEffect(() => {
-    const lastLine = lines[lines.length-1];
-    if (lastLine && (lastLine.type === 'output' || lastLine.type === 'success') && typeof lastLine.content === 'string') {
-        setIsTyping(true);
-    }
-  }, [lines]);
-
   return (
     <Card
       className="w-full h-full flex flex-col bg-black/50 backdrop-blur-sm border-primary/20 shadow-lg shadow-primary/10"
@@ -98,7 +112,7 @@ export function Terminal() {
     >
       <CardContent className="p-4 flex-1 overflow-y-auto" ref={scrollRef}>
         <div className="flex flex-col gap-2">
-          {lines.map(renderLine)}
+          {animatedLines.map(renderLine)}
           {!isTyping && (
              <div className="flex items-center relative">
               <span className="text-accent mr-2 font-bold">$</span>
