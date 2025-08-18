@@ -4,7 +4,6 @@ import React, { useRef, useEffect, useState } from "react";
 import { useTerminal } from "@/hooks/useTerminal";
 import { Line } from "@/lib/command-handler";
 import { Card, CardContent } from "@/components/ui/card";
-import TypingEffect from "./TypingEffect";
 
 export function Terminal() {
   const {
@@ -13,18 +12,18 @@ export function Terminal() {
     handleKeyDown,
     suggestion,
     handleInputChange,
+    inputRef: terminalInputRef,
   } = useTerminal();
   const [isTyping, setIsTyping] = useState(false);
   const [animatedLines, setAnimatedLines] = useState<Line[]>([]);
 
-  const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (inputRef.current && !isTyping) {
-      inputRef.current.focus();
+    if (terminalInputRef.current && !isTyping) {
+      terminalInputRef.current.focus();
     }
-  }, [isTyping]);
+  }, [isTyping, terminalInputRef]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -34,7 +33,7 @@ export function Terminal() {
   
   useEffect(() => {
     const lastLine = lines[lines.length - 1];
-    if (lastLine && (lastLine.type === 'output' || lastLine.type === 'success') && typeof lastLine.content === 'string' && lastLine.content.length > 0) {
+    if (lastLine && (lastLine.type === 'output' || lastLine.type === 'success' || lastLine.type === 'error') && typeof lastLine.content === 'string' && lastLine.content.length > 0) {
       setIsTyping(true);
       const newLines = lastLine.content.split('\n').map(lineContent => ({
         ...lastLine,
@@ -43,7 +42,7 @@ export function Terminal() {
       
       const previousLines = lines.slice(0, lines.length -1);
       
-      setAnimatedLines([...previousLines, {type: lastLine.type, content: ''}]); // Start with the last line empty
+      setAnimatedLines([...previousLines]);
       
       let currentAnimatedLines = [...previousLines];
 
@@ -66,8 +65,8 @@ export function Terminal() {
 
 
   const focusInput = () => {
-    if (inputRef.current) {
-      inputRef.current.focus();
+    if (terminalInputRef.current) {
+      terminalInputFRef.current.focus();
     }
   };
   
@@ -117,7 +116,7 @@ export function Terminal() {
              <div className="flex items-center relative">
               <span className="text-accent mr-2 font-bold">$</span>
               <input
-                ref={inputRef}
+                ref={terminalInputRef}
                 type="text"
                 value={input}
                 onChange={handleInputChange}
@@ -127,7 +126,7 @@ export function Terminal() {
                 aria-label="Terminal input"
                 disabled={isTyping}
               />
-              {suggestion && input && (
+              {suggestion && input && suggestion.toLowerCase().startsWith(input.toLowerCase()) && (
                 <div className="absolute left-[calc(1ch+1rem)] top-0 text-muted-foreground/50 pointer-events-none">
                   <span className="invisible">{input}</span>
                   <span>{suggestion.substring(input.length)}</span>

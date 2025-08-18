@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { handleCommand, getSuggestions, Line } from "@/lib/command-handler";
 
 export const useTerminal = () => {
@@ -16,8 +16,10 @@ export const useTerminal = () => {
   const [lastCommandIndex, setLastCommandIndex] = useState(0);
   const [variables, setVariables] = useState<Record<string, any>>({});
   const [commandStack, setCommandStack] = useState<Line[][]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const addToHistory = (command: string) => {
+    if (command.trim() === "") return;
     const newHistory = [...commandHistory, command];
     setCommandHistory(newHistory);
     localStorage.setItem("commandHistory", JSON.stringify(newHistory));
@@ -53,7 +55,11 @@ export const useTerminal = () => {
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      if (input.trim()) {
+      e.preventDefault();
+      if (suggestion) {
+        setInput(suggestion);
+        setSuggestion("");
+      } else {
         processCommand(input.trim());
       }
     } else if (e.key === "ArrowUp") {
@@ -72,12 +78,26 @@ export const useTerminal = () => {
         );
         setInput(commandHistory[newIndex] || "");
         setLastCommandIndex(newIndex);
+      } else {
+         setInput("");
+         setLastCommandIndex(commandHistory.length);
       }
     } else if (e.key === "Tab" || e.key === "ArrowRight") {
-        if (suggestion) {
+        if (suggestion && inputRef.current?.selectionStart === input.length) {
             e.preventDefault();
             setInput(suggestion);
         }
+    } else if (e.key === "(") {
+        e.preventDefault();
+        const newInputValue = input + "()";
+        setInput(newInputValue);
+        // We need a slight delay to ensure the input value updates before we set the cursor
+        setTimeout(() => {
+          if (inputRef.current) {
+            inputRef.current.selectionStart = newInputValue.length - 1;
+            inputRef.current.selectionEnd = newInputValue.length - 1;
+          }
+        }, 0);
     }
   };
   
@@ -95,9 +115,15 @@ export const useTerminal = () => {
   useEffect(() => {
     const storedHistory = localStorage.getItem("commandHistory");
     if (storedHistory) {
-      const parsedHistory = JSON.parse(storedHistory);
-      setCommandHistory(parsedHistory);
-      setLastCommandIndex(parsedHistory.length);
+      try {
+        const parsedHistory = JSON.parse(storedHistory);
+        if (Array.isArray(parsedHistory)) {
+           setCommandHistory(parsedHistory);
+           setLastCommandIndex(parsedHistory.length);
+        }
+      } catch (e) {
+        console.error("Could not parse command history:", e);
+      }
     }
   }, []);
 
@@ -111,5 +137,6 @@ export const useTerminal = () => {
     setCommandHistory,
     setLastCommandIndex,
     handleInputChange,
+    inputRef,
   };
 };

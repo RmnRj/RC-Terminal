@@ -39,17 +39,25 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
     { type: "output", content: content.helpText },
   ],
   open: async (args, variables) => {
-    if (args.length === 0) return [{ type: "error", content: "Error: open() requires a section name. Try 'open(projects)'." }];
-    const section = args[0].toLowerCase();
-    const sectionContent = (content as any)[section];
-    if (sectionContent) {
-        const output = formatOutput(section, sectionContent);
-        return [{ type: "output", content: output }];
+    if (args.length === 0 || (args.length === 1 && args[0] === '')) {
+      return [{ type: "error", content: "Error: open() requires a section name. Try 'open(projects)'." }];
     }
-    if (variables[section]) {
-        return [{ type: "output", content: formatOutput(section, variables[section]) }];
+  
+    const lines: Line[] = [];
+    for (const section of args) {
+      const trimmedSection = section.trim();
+      if (!trimmedSection) continue;
+
+      const sectionContent = (content as any)[trimmedSection.toLowerCase()];
+      if (sectionContent) {
+        lines.push({ type: "output", content: formatOutput(trimmedSection, sectionContent) });
+      } else if (variables[trimmedSection]) {
+        lines.push({ type: "output", content: formatOutput(trimmedSection, variables[trimmedSection]) });
+      } else {
+        lines.push({ type: "error", content: `Error: Section or variable '${trimmedSection}' not found.` });
+      }
     }
-    return [{ type: "error", content: `Error: Section or variable '${section}' not found.` }];
+    return lines;
   },
   showname: async () => [{ type: "output", content: content.fullName }],
   showimage: async () => [{ type: "output", content: "showImage() is not implemented yet." }],
@@ -90,21 +98,21 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
 
 const allCommands = Object.keys(commands);
 const allDataKeys = Object.keys(data);
+const allowedOpenArgs = allDataKeys.filter(key => key !== 'fullName');
 
 export const getSuggestions = (input: string, variables: Record<string, any>): string => {
     if (!input) return "";
 
     const commandCandidates = [...allCommands, ...Object.keys(variables)];
-    const dataKeyCandidates = allDataKeys;
-
-    const openRegex = /^open\((['"]?)([^'")]*)$/;
+    
+    const openRegex = /^open\((['"]?)([^'"),]*)$/;
     const openMatch = input.match(openRegex);
 
     if (openMatch) {
         const partial = openMatch[2];
-        const suggestion = dataKeyCandidates.find(key => key.startsWith(partial));
+        const suggestion = allowedOpenArgs.find(key => key.startsWith(partial));
         if (suggestion) {
-            return `open(${openMatch[1]}${suggestion}${openMatch[1]}${suggestion.length === partial.length ? ')' : ''}`;
+            return `open(${openMatch[1]}${suggestion}`;
         }
     }
 
@@ -198,8 +206,17 @@ export const handleCommand = async (
   }
 
   const [, command, argsString] = match;
-  const args = argsString ? argsString.split(",").map((arg) => arg.trim().replace(/^['"]|['"]$/g, "")) : [];
   
+  // Handle commands with no args that might be called with empty parens
+  if (argsString === undefined || argsString.trim() === '') {
+    const cmdFunc = commands[command.toLowerCase()];
+    if (cmdFunc) {
+      // For commands that can take optional args, pass empty array. For those that take none, this is fine.
+      return cmdFunc([], variables, setVariables);
+    }
+  }
+  
+  const args = argsString ? argsString.split(",").map((arg) => arg.trim().replace(/^['"]|['"]$/g, "")) : [];
   const cmdFunc = commands[command.toLowerCase()];
 
   if (cmdFunc) {
