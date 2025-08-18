@@ -110,13 +110,15 @@ export const handleCommand = async (
   commandStack: Line[][],
   setCommandStack: Function
 ): Promise<Line[]> => {
-
-  if (commandStr.toLowerCase() === 'clear') {
+  const trimmedCommand = commandStr.trim();
+  
+  if (trimmedCommand.toLowerCase() === 'clear') {
     setLines([]);
     return [];
   }
   
-  if (commandStr.toLowerCase() === 'back()') {
+  const backMatch = trimmedCommand.match(/^back\(\s*\);?$/);
+  if (backMatch) {
     if (commandStack.length > 1) {
       const newStack = commandStack.slice(0, -1);
       setCommandStack(newStack);
@@ -129,8 +131,8 @@ export const handleCommand = async (
   }
 
   // Variable assignment
-  if (commandStr.includes("->")) {
-    const parts = commandStr.split("->").map((p) => p.trim());
+  if (trimmedCommand.includes("->")) {
+    const parts = trimmedCommand.split("->").map((p) => p.trim());
     if (parts.length !== 2) return [{ type: "error", content: "Invalid variable assignment syntax. Use: varName -> command()" }];
     const varName = parts[0];
     const cmdStr = parts[1];
@@ -154,7 +156,7 @@ export const handleCommand = async (
       return [{ type: "success", content: `Stored output in variable '${varName}'.` }];
     } else {
       // Try to get raw data from commands that return structured data
-      const match = cmdStr.match(/^([a-zA-Z_]+)\((.*)\)$/);
+      const match = cmdStr.match(/^([a-zA-Z_]+)\((.*)\);?$/);
        if (match) {
         const [, command] = match;
         const sectionContent = (content as any)[command.toLowerCase()];
@@ -167,17 +169,17 @@ export const handleCommand = async (
     }
   }
 
-  const match = commandStr.match(/^([a-zA-Z_]+)\((.*)\)$/);
+  const match = trimmedCommand.match(/^([a-zA-Z_]+)\((.*)\);?$/);
 
   if (!match) {
       try {
           const result = await generateReasonedErrorMessage({
-              unexpectedValue: commandStr,
-              context: "User tried to run a command in the terminal. The command syntax is likely incorrect. It should be command(args).",
+              unexpectedValue: trimmedCommand,
+              context: "User tried to run a command in the terminal. The command syntax is likely incorrect. It should be command(arguments).",
           });
           return [{ type: "error", content: result.errorMessage }];
       } catch (e) {
-          return [{ type: "error", content: `Error: command not found or invalid syntax: ${commandStr}. Try 'help'.` }];
+          return [{ type: "error", content: `Error: command not found or invalid syntax: ${trimmedCommand}. Try 'help'.` }];
       }
   }
 
@@ -191,7 +193,7 @@ export const handleCommand = async (
   } else {
     try {
       const result = await generateReasonedErrorMessage({
-        unexpectedValue: commandStr,
+        unexpectedValue: trimmedCommand,
         context: "User tried to run a command in the terminal.",
       });
       return [{ type: "error", content: result.errorMessage }];
