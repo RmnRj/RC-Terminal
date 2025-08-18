@@ -15,7 +15,6 @@ export const useTerminal = () => {
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [lastCommandIndex, setLastCommandIndex] = useState(0);
   const [variables, setVariables] = useState<Record<string, any>>({});
-  const [commandStack, setCommandStack] = useState<Line[][]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const addToHistory = (command: string) => {
@@ -32,11 +31,6 @@ export const useTerminal = () => {
       setInput("");
 
       const currentLines = [...lines, { type: "input" as const, content: commandStr }];
-      if (commandStack.length >= 5) {
-        setCommandStack(prev => [...prev.slice(1), currentLines]);
-      } else {
-        setCommandStack(prev => [...prev, currentLines]);
-      }
       setLines(currentLines);
 
       const newLines = await handleCommand(
@@ -44,13 +38,11 @@ export const useTerminal = () => {
         variables,
         setVariables,
         lines,
-        setLines,
-        commandStack,
-        setCommandStack
+        setLines
       );
       setLines((prev) => [...prev, ...newLines]);
     },
-    [lines, variables, commandStack]
+    [lines, variables]
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {

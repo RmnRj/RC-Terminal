@@ -23,8 +23,7 @@ export const helpText = `Available Commands:
 - education        : Shows academic background.
 - history          : Displays command history.
 - clear            : Clears the terminal screen.
-- back             : Goes back to the previous command state (undo).
 - feedback         : Opens the feedback form.
 - varName -> cmd() : Stores command output in a variable (e.g., myVar -> projects()).
-- makeCopy(varName): Prepares a variable's content for printing.
+- printCopy(var)   : Prepares a variable's or section's content for printing.
 `;

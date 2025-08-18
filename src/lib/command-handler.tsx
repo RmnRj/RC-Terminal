@@ -75,13 +75,28 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
   clear: async () => [],
   feedback: async () => [{ type: "component", content: <FeedbackForm /> }],
   feedbackforme: async () => [{ type: "error", content: "This command is for administrative use." }],
-  makecopy: async (args, variables) => {
-    if (args.length === 0) return [{ type: "error", content: "Usage: makeCopy(variableName)" }];
-    const varName = args[0];
-    if (!varName || !variables[varName]) {
-        return [{ type: "error", content: `Variable '${varName}' not found. Usage: makeCopy(variableName)` }];
+  printcopy: async (args, variables) => {
+    if (args.length === 0) return [{ type: "error", content: "Usage: printCopy(variableOrSectionName)" }];
+    
+    const arg = args[0];
+    const disallowedCommands = ['clear', 'history', 'help', 'feedback', 'feedbackforme', 'printcopy'];
+    if (disallowedCommands.includes(arg.toLowerCase())) {
+        return [{ type: "error", content: `Cannot print content from '${arg}'.` }];
     }
-    const contentToPrint = variables[varName];
+
+    let contentToPrint = '';
+
+    if (variables[arg]) {
+        contentToPrint = variables[arg];
+    } else if ((content as any)[arg.toLowerCase()]) {
+        contentToPrint = formatOutput(arg, (content as any)[arg.toLowerCase()]);
+    } else if (commands[arg.toLowerCase()]) {
+        const lines = await commands[arg.toLowerCase()]([], variables, () => {});
+        contentToPrint = lines.map(l => l.content).join('\n');
+    } else {
+        return [{ type: "error", content: `Variable or section '${arg}' not found.` }];
+    }
+
     const printableDiv = document.createElement('div');
     printableDiv.className = 'printable';
     printableDiv.innerHTML = `<h1>Printable Copy</h1><pre>${typeof contentToPrint === 'string' ? contentToPrint : JSON.stringify(contentToPrint, null, 2)}</pre>`;
@@ -89,10 +104,6 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
     window.print();
     document.body.removeChild(printableDiv);
     return [{ type: "success", content: "Print dialog opened." }];
-  },
-  back: async () => {
-    // Logic handled in useTerminal hook
-    return [];
   },
 };
 
@@ -129,26 +140,12 @@ export const handleCommand = async (
   variables: any,
   setVariables: Function,
   lines: Line[],
-  setLines: Function,
-  commandStack: Line[][],
-  setCommandStack: Function
+  setLines: Function
 ): Promise<Line[]> => {
   const trimmedCommand = commandStr.trim().replace(/;$/, "");
   
   if (trimmedCommand.toLowerCase() === 'clear') {
     setLines([]);
-    return [];
-  }
-  
-  if (trimmedCommand.toLowerCase() === 'back' || trimmedCommand.toLowerCase() === 'back()') {
-    if (commandStack.length > 1) {
-      const newStack = commandStack.slice(0, -1);
-      setCommandStack(newStack);
-      setLines(newStack[newStack.length - 1] || []);
-    } else {
-      setCommandStack([]);
-      setLines([ { type: "output", content: "Welcome to RC Terminal. Type 'help' for a list of commands." } ]);
-    }
     return [];
   }
 
@@ -160,7 +157,7 @@ export const handleCommand = async (
     const cmdStr = parts[1];
 
     // Temporarily handle command to get output
-    const tempLines = await handleCommand(cmdStr, variables, setVariables, lines, setLines, commandStack, setCommandStack);
+    const tempLines = await handleCommand(cmdStr, variables, setVariables, lines, setLines);
     
     // Check for component output first
     const componentLine = tempLines.find(line => line.type === 'component');
@@ -206,21 +203,13 @@ export const handleCommand = async (
   }
 
   const [, command, argsString] = match;
-  
-  // Handle commands with no args that might be called with empty parens
-  if (argsString === undefined || argsString.trim() === '') {
-    const cmdFunc = commands[command.toLowerCase()];
-    if (cmdFunc) {
-      // For commands that can take optional args, pass empty array. For those that take none, this is fine.
-      return cmdFunc([], variables, setVariables);
-    }
-  }
-  
-  const args = argsString ? argsString.split(",").map((arg) => arg.trim().replace(/^['"]|['"]$/g, "")) : [];
   const cmdFunc = commands[command.toLowerCase()];
 
   if (cmdFunc) {
-    return cmdFunc(args, variables, setVariables);
+      const args = (argsString === undefined || argsString.trim() === '') 
+        ? [] 
+        : argsString.split(",").map((arg) => arg.trim().replace(/^['"]|['"]$/g, ""));
+      return cmdFunc(args, variables, setVariables);
   } else {
     try {
       const result = await generateReasonedErrorMessage({
