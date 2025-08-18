@@ -50,16 +50,7 @@ export const useTerminal = () => {
     if (e.key === "Enter") {
       e.preventDefault();
       if (suggestion) {
-        const openRegex = /^open\(([^)]*)$/;
-        const openMatch = input.match(openRegex);
-        if (openMatch) {
-            const argsPart = openMatch[1];
-            const args = argsPart.split(',').map(a => a.trim());
-            const completedArgs = [...args.slice(0, -1), suggestion].join(', ');
-            setInput(`open(${completedArgs})`);
-        } else {
-            setInput(suggestion);
-        }
+        setInput(input + suggestion);
         setSuggestion("");
       } else {
         processCommand(input.trim());
@@ -90,16 +81,7 @@ export const useTerminal = () => {
     } else if (e.key === "Tab" || e.key === "ArrowRight") {
         if (suggestion && inputRef.current?.selectionStart === input.length) {
             e.preventDefault();
-            const openRegex = /^open\(([^)]*)$/;
-            const openMatch = input.match(openRegex);
-             if (openMatch) {
-                const argsPart = openMatch[1];
-                const args = argsPart.split(',').map(a => a.trim());
-                const completedArgs = [...args.slice(0, -1), suggestion].join(', ');
-                setInput(`open(${completedArgs}`);
-            } else {
-                 setInput(suggestion);
-            }
+            setInput(input + suggestion);
             setSuggestion("");
         }
     } else if (e.key === "(") {
@@ -154,5 +136,3 @@ export const useTerminal = () => {
     inputRef,
   };
 };
-
-    
