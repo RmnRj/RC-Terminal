@@ -116,51 +116,49 @@ const allowedOpenArgs = allDataKeys.filter(key => key !== 'profile' && key !== '
 
 
 export const getSuggestions = (input: string, variables: Record<string, any>): string => {
-  if (!input) return "";
+    if (!input) return "";
 
-  const commandsWithArgs = ['open', 'printcopy'];
+    const commandsWithArgs = ['open', 'printcopy'];
 
-  const openRegex = /^open\(([^)]*)$/;
-  const openMatch = input.match(openRegex);
-  
-  if (openMatch) {
-    const argsPart = openMatch[1];
-    const args = argsPart.split(',').map(arg => arg.trim());
-    const currentArg = args[args.length - 1];
+    // Regex to match a command with parentheses and capture the content inside
+    const commandRegex = /^(\w+)\(([^)]*)$/;
+    const match = input.match(commandRegex);
+
+    if (match) {
+        const command = match[1];
+        const argsPart = match[2];
+        const args = argsPart.split(',').map(arg => arg.trim());
+        const currentArg = args[args.length - 1];
+
+        let candidates: string[] = [];
+        if (command === 'open') {
+            const usedArgs = new Set(args.slice(0, -1));
+            candidates = allowedOpenArgs.filter(key => !usedArgs.has(key));
+        } else if (command === 'printcopy') {
+            candidates = [...allDataKeys, ...Object.keys(variables)];
+        }
+
+        if (currentArg) {
+            const suggestion = candidates.find(c => c.startsWith(currentArg));
+            return suggestion ? suggestion.substring(currentArg.length) : "";
+        }
+        return "";
+    }
+
+    // This handles top-level command suggestions
+    const commandCandidates = [...allCommands, ...Object.keys(variables)];
+    const suggestion = commandCandidates.find(c => c.startsWith(input));
+
+    if (suggestion) {
+        // If the suggestion is a command that takes arguments and the user has typed the full command name
+        if (commandsWithArgs.includes(suggestion) && input === suggestion) {
+            return "()";
+        }
+        // Otherwise, suggest the rest of the command/variable name
+        return suggestion.substring(input.length);
+    }
     
-    const usedArgs = new Set(args.slice(0, -1));
-    const availableSuggestions = allowedOpenArgs.filter(key => !usedArgs.has(key));
-    
-    if (currentArg) {
-      const suggestion = availableSuggestions.find(s => s.startsWith(currentArg));
-      return suggestion ? suggestion.substring(currentArg.length) : "";
-    }
     return "";
-  }
-  
-  const printCopyRegex = /^printcopy\(([^)]*)$/;
-  const printCopyMatch = input.match(printCopyRegex);
-  if (printCopyMatch) {
-    const arg = printCopyMatch[1].trim();
-    const candidates = [...allDataKeys, ...Object.keys(variables)];
-    if (arg) {
-      const suggestion = candidates.find(c => c.startsWith(arg));
-      return suggestion ? suggestion.substring(arg.length) : "";
-    }
-    return "";
-  }
-  
-  const commandCandidates = [...allCommands, ...Object.keys(variables)];
-  const suggestion = commandCandidates.find(c => c.startsWith(input));
-
-  if (suggestion) {
-    if (commandsWithArgs.includes(suggestion) && input === suggestion) {
-      return "()";
-    }
-    return suggestion.substring(input.length);
-  }
-
-  return "";
 };
 
 
