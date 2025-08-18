@@ -116,33 +116,42 @@ export const getSuggestions = (input: string, variables: Record<string, any>): s
 
     const commandCandidates = [...allCommands, ...Object.keys(variables)];
     
-    const openRegex = /^open\((.*)$/;
+    const openRegex = /^(open\()([^)]*)$/;
     const openMatch = input.match(openRegex);
 
     if (openMatch) {
-      const argsPart = openMatch[1];
-      const args = argsPart.split(',').map(a => a.trim());
-      const currentArg = args[args.length - 1];
-      
-      const usedArgs = args.slice(0, args.length - 1);
-      const availableSuggestions = allowedOpenArgs.filter(key => !usedArgs.includes(key));
-      
-      if (currentArg.length > 0) {
-        const suggestion = availableSuggestions.find(key => key.startsWith(currentArg));
-        if (suggestion) {
-          const completedArgs = [...usedArgs, suggestion].join(', ');
-          return `open(${completedArgs}`;
+        const prefix = openMatch[1]; // e.g., "open("
+        const argsPart = openMatch[2];
+        const args = argsPart.split(',').map(a => a.trim());
+        const currentArg = args[args.length - 1];
+
+        const usedArgs = new Set(args.slice(0, args.length - 1));
+        const availableSuggestions = allowedOpenArgs.filter(key => !usedArgs.has(key));
+
+        if (currentArg) {
+            const suggestion = availableSuggestions.find(s => s.startsWith(currentArg));
+            if (suggestion) {
+                const completedArgs = [...args.slice(0, -1), suggestion].join(', ');
+                return `${prefix}${completedArgs}`;
+            }
         }
-      }
+        return ""; // No suggestion if current arg is empty or no match
     }
 
+    // Handle top-level command suggestions
     const suggestion = commandCandidates.find(c => c.startsWith(input));
-    if (suggestion && suggestion.length > input.length) {
+    if (suggestion) {
+        // For commands that take arguments, suggest adding parentheses
+        const commandsWithArgs = ['open', 'printcopy'];
+        if (commandsWithArgs.includes(suggestion) && input === suggestion) {
+            return `${suggestion}()`;
+        }
         return suggestion;
     }
     
     return "";
 };
+
 
 export const handleCommand = async (
   commandStr: string,

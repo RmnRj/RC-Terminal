@@ -126,7 +126,7 @@ export function Terminal() {
                 aria-label="Terminal input"
                 disabled={isTyping}
               />
-              {suggestion && input && suggestion.toLowerCase().startsWith(input.toLowerCase()) && (
+              {suggestion && input && (
                 <div className="absolute left-[calc(1ch+1rem)] top-0 text-muted-foreground/50 pointer-events-none">
                   <span className="invisible">{input}</span>
                   <span>{suggestion.substring(input.length)}</span>
