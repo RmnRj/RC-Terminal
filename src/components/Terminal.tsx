@@ -66,7 +66,7 @@ export function Terminal() {
 
   const focusInput = () => {
     if (terminalInputRef.current) {
-      terminalInputFRef.current.focus();
+      terminalInputRef.current.focus();
     }
   };
   
