@@ -11,6 +11,7 @@ export const useTerminal = () => {
     },
   ]);
   const [input, setInput] = useState("");
+  const [suggestion, setSuggestion] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [lastCommandIndex, setLastCommandIndex] = useState(0);
   const [variables, setVariables] = useState<Record<string, any>>({});
@@ -72,12 +73,11 @@ export const useTerminal = () => {
         setInput(commandHistory[newIndex] || "");
         setLastCommandIndex(newIndex);
       }
-    } else if (e.key === "Tab") {
-      e.preventDefault();
-      const suggestions = getSuggestions(input);
-      if (suggestions.length === 1) {
-        setInput(suggestions[0]);
-      }
+    } else if (e.key === "Tab" || e.key === "ArrowRight") {
+        if (suggestion) {
+            e.preventDefault();
+            setInput(suggestion);
+        }
     }
   };
 
@@ -89,12 +89,22 @@ export const useTerminal = () => {
       setLastCommandIndex(parsedHistory.length);
     }
   }, []);
+  
+  useEffect(() => {
+    if (input) {
+      const newSuggestion = getSuggestions(input, variables);
+      setSuggestion(newSuggestion);
+    } else {
+      setSuggestion("");
+    }
+  }, [input, variables]);
 
   return {
     lines,
     setLines,
     input,
     setInput,
+    suggestion,
     handleKeyDown,
     setCommandHistory,
     setLastCommandIndex,

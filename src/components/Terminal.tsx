@@ -6,13 +6,13 @@ import { Line } from "@/lib/command-handler";
 import { Card, CardContent } from "@/components/ui/card";
 import TypingEffect from "./TypingEffect";
 
-
 export function Terminal() {
   const {
     lines,
     input,
     setInput,
     handleKeyDown,
+    suggestion,
   } = useTerminal();
   const [isTyping, setIsTyping] = useState(false);
 
@@ -61,7 +61,7 @@ export function Terminal() {
             ? "text-green-400"
             : "text-foreground";
 
-        if (isLastLine && typeof line.content === 'string') {
+        if (isLastLine && typeof line.content === 'string' && line.type !== 'error') {
             return (
                  <div key={index} className={`${colorClass} whitespace-pre-wrap`}>
                     <TypingEffect text={line.content} onFinished={handleTypingComplete} />
@@ -86,7 +86,7 @@ export function Terminal() {
   
   useEffect(() => {
     const lastLine = lines[lines.length-1];
-    if (lastLine && (lastLine.type === 'output' || lastLine.type === 'error' || lastLine.type === 'success') && typeof lastLine.content === 'string') {
+    if (lastLine && (lastLine.type === 'output' || lastLine.type === 'success') && typeof lastLine.content === 'string') {
         setIsTyping(true);
     }
   }, [lines]);
@@ -100,7 +100,7 @@ export function Terminal() {
         <div className="flex flex-col gap-2">
           {lines.map(renderLine)}
           {!isTyping && (
-             <div className="flex items-center">
+             <div className="flex items-center relative">
               <span className="text-accent mr-2 font-bold">$</span>
               <input
                 ref={inputRef}
@@ -108,11 +108,17 @@ export function Terminal() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                className="bg-transparent border-none focus:ring-0 outline-none w-full caret-accent"
+                className="bg-transparent border-none focus:ring-0 outline-none w-full caret-accent z-10"
                 autoComplete="off"
                 aria-label="Terminal input"
                 disabled={isTyping}
               />
+              {suggestion && (
+                <div className="absolute left-[calc(1ch+1rem)] top-0 text-muted-foreground/50 pointer-events-none">
+                  {input}
+                  <span className="text-muted-foreground/50">{suggestion.substring(input.length)}</span>
+                </div>
+              )}
             </div>
           )}
         </div>

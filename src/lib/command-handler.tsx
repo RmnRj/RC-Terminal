@@ -3,6 +3,7 @@
 import React from "react";
 import { generateReasonedErrorMessage } from "@/ai/flows/reasoned-error-messages";
 import * as content from "./content";
+import data from './data.json';
 import FeedbackForm from "@/components/FeedbackForm";
 
 export interface Line {
@@ -88,17 +89,31 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
 };
 
 const allCommands = Object.keys(commands);
+const allDataKeys = Object.keys(data);
 
-export const getSuggestions = (input: string): string[] => {
-  const command = input.split("(")[0].toLowerCase();
-  if (!input) return [];
-  if (input.includes('(')) return [];
+export const getSuggestions = (input: string, variables: Record<string, any>): string => {
+    if (!input) return "";
 
-  const suggestions = allCommands.filter((c) => c.startsWith(command));
-  if (suggestions.length > 0) {
-    return suggestions.map(cmd => cmd);
-  }
-  return [];
+    const commandCandidates = [...allCommands, ...Object.keys(variables)];
+    const dataKeyCandidates = allDataKeys;
+
+    const openRegex = /^open\((['"]?)([^'")]*)$/;
+    const openMatch = input.match(openRegex);
+
+    if (openMatch) {
+        const partial = openMatch[2];
+        const suggestion = dataKeyCandidates.find(key => key.startsWith(partial));
+        if (suggestion) {
+            return `open(${openMatch[1]}${suggestion}${openMatch[1]}${suggestion.length === partial.length ? ')' : ''}`;
+        }
+    }
+
+    const suggestion = commandCandidates.find(c => c.startsWith(input));
+    if (suggestion && suggestion.length > input.length) {
+        return suggestion;
+    }
+    
+    return "";
 };
 
 export const handleCommand = async (
@@ -155,7 +170,7 @@ export const handleCommand = async (
       return [{ type: "success", content: `Stored output in variable '${varName}'.` }];
     } else {
       // Try to get raw data from commands that return structured data
-      const match = cmdStr.match(/^([a-zA-Z_]+)\(.*\)$/);
+      const match = cmdStr.match(/^([a-zA-Z_]+)(?:\(.*\))?$/);
        if (match) {
         const [, command] = match;
         const sectionContent = (content as any)[command.toLowerCase()];
