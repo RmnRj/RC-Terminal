@@ -116,15 +116,24 @@ export const getSuggestions = (input: string, variables: Record<string, any>): s
 
     const commandCandidates = [...allCommands, ...Object.keys(variables)];
     
-    const openRegex = /^open\((['"]?)([^'"),]*)$/;
+    const openRegex = /^open\((.*)$/;
     const openMatch = input.match(openRegex);
 
     if (openMatch) {
-        const partial = openMatch[2];
-        const suggestion = allowedOpenArgs.find(key => key.startsWith(partial));
+      const argsPart = openMatch[1];
+      const args = argsPart.split(',').map(a => a.trim());
+      const currentArg = args[args.length - 1];
+      
+      const usedArgs = args.slice(0, args.length - 1);
+      const availableSuggestions = allowedOpenArgs.filter(key => !usedArgs.includes(key));
+      
+      if (currentArg.length > 0) {
+        const suggestion = availableSuggestions.find(key => key.startsWith(currentArg));
         if (suggestion) {
-            return `open(${openMatch[1]}${suggestion}`;
+          const completedArgs = [...usedArgs, suggestion].join(', ');
+          return `open(${completedArgs}`;
         }
+      }
     }
 
     const suggestion = commandCandidates.find(c => c.startsWith(input));
