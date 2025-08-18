@@ -1,0 +1,17 @@
+
+[
+  {
+    "Activity": "Hackathon Winner, TechCrunch Disrupt 2023",
+    "Description": "Led a team to build a prize-winning project in the AI for Good category."
+  },
+  {
+    "Activity": "Open Source Contributor",
+    "Project": "TensorFlow",
+    "Description": "Contributed performance optimizations to the data loading module."
+  },
+  {
+    "Activity": "Tech Speaker",
+    "Event": "PyCon 2024",
+    "Description": "Presented a talk on 'Scaling PyTorch Models for Production'."
+  }
+]

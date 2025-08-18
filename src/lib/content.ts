@@ -1,15 +1,21 @@
-import data from './data.json';
 
-export const { 
-    fullName, 
-    about, 
-    projects, 
-    experience, 
-    skills, 
-    education, 
-    activities, 
-    contact 
-} = data;
+import profile from '../data/profile.json';
+import projects from '../data/projects.json';
+import experience from '../data/experience.json';
+import skills from '../data/skills.json';
+import education from '../data/education.json';
+import activities from '../data/activities.json';
+import contact from '../data/contact.json';
+
+export {
+    profile,
+    projects,
+    experience,
+    skills,
+    education,
+    activities,
+    contact
+};
 
 export const helpText = `Available Commands:
 - open(section)    : Opens a specific section (e.g., 'projects', 'skills').

@@ -1,0 +1,27 @@
+
+[
+  {
+    "Title": "Artificial System Software [AiSS]",
+    "Description": "A neural network-based system designed for advanced pattern recognition tasks.",
+    "Tech Stack": "Python, PyTorch, Scikit-learn",
+    "Link": "github.com/ramanc/aiss"
+  },
+  {
+    "Title": "Apple Suppliers System [AppleSS]",
+    "Description": "A supply chain analytics dashboard to visualize and manage supplier data.",
+    "Tech Stack": "Node.js, React, PostgreSQL, D3.js",
+    "Link": "github.com/ramanc/appless"
+  },
+  {
+    "Title": "VisionKit [VK]",
+    "Description": "An open-source toolkit for common image processing operations.",
+    "Tech Stack": "C++, OpenCV",
+    "Link": "github.com/ramanc/visionkit"
+  },
+  {
+    "Title": "Portfolio Terminal",
+    "Description": "The very terminal you are using right now!",
+    "Tech Stack": "Next.js, TypeScript, TailwindCSS, Genkit",
+    "Link": "github.com/ramanc/terminal-portfolio"
+  }
+]

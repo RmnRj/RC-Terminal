@@ -1,9 +1,9 @@
+
 "use client";
 
 import React from "react";
 import { generateReasonedErrorMessage } from "@/ai/flows/reasoned-error-messages";
 import * as content from "./content";
-import data from './data.json';
 import FeedbackForm from "@/components/FeedbackForm";
 
 export interface Line {
@@ -59,11 +59,11 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
     }
     return lines;
   },
-  showname: async () => [{ type: "output", content: content.fullName }],
+  showname: async () => [{ type: "output", content: content.profile.fullName }],
   showimage: async () => [{ type: "output", content: "showImage() is not implemented yet." }],
   showcontact: async () => [{ type: "output", content: formatOutput("Contact", content.contact) }],
   showactivities: async () => [{ type: "output", content: formatOutput("Activities", content.activities) }],
-  about: async () => [{ type: "output", content: formatOutput("About Me", content.about) }],
+  about: async () => [{ type: "output", content: formatOutput("About Me", content.profile.about) }],
   projects: async () => [{ type: "output", content: formatOutput("Projects", content.projects) }],
   experience: async () => [{ type: "output", content: formatOutput("Experience", content.experience) }],
   skills: async () => [{ type: "output", content: formatOutput("Skills", content.skills) }],
@@ -111,18 +111,20 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
 };
 
 const allCommands = Object.keys(commands);
-const allDataKeys = Object.keys(data);
-const allowedOpenArgs = allDataKeys.filter(key => key !== 'fullName');
+const allDataKeys = Object.keys(content);
+const allowedOpenArgs = allDataKeys.filter(key => key !== 'profile' && key !== 'helpText');
+
 
 export const getSuggestions = (input: string, variables: Record<string, any>): string => {
   if (!input) return "";
 
   const commandsWithArgs = ['open', 'printcopy'];
-  const openRegex = /^(open\()([^)]*)$/;
+
+  const openRegex = /^open\(([^)]*)$/;
   const openMatch = input.match(openRegex);
   
   if (openMatch) {
-    const argsPart = openMatch[2];
+    const argsPart = openMatch[1];
     const args = argsPart.split(',').map(arg => arg.trim());
     const currentArg = args[args.length - 1];
     
@@ -136,10 +138,10 @@ export const getSuggestions = (input: string, variables: Record<string, any>): s
     return "";
   }
   
-  const printCopyRegex = /^(printcopy\()([^)]*)$/;
+  const printCopyRegex = /^printcopy\(([^)]*)$/;
   const printCopyMatch = input.match(printCopyRegex);
   if (printCopyMatch) {
-    const arg = printCopyMatch[2].trim();
+    const arg = printCopyMatch[1].trim();
     const candidates = [...allDataKeys, ...Object.keys(variables)];
     if (arg) {
       const suggestion = candidates.find(c => c.startsWith(arg));

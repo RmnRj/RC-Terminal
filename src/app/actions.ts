@@ -1,6 +1,9 @@
+
 "use server";
 
 import { z } from "zod";
+import fs from "fs/promises";
+import path from "path";
 
 const feedbackSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters.").max(80),
@@ -23,14 +26,32 @@ export async function submitFeedback(prevState: any, formData: FormData) {
 
   const { name, email, feedback } = validatedFields.data;
 
-  // In a real application, you would save this to a database or a file.
-  // For this example, we'll just log it to the server console.
-  console.log("--- New Feedback Received ---");
-  console.log("Timestamp:", new Date().toISOString());
-  console.log("Name:", name);
-  console.log("Email:", email || "Not provided");
-  console.log("Feedback:", feedback);
-  console.log("----------------------------");
+  const newFeedback = {
+    name,
+    email: email || "Not provided",
+    feedback,
+    timestamp: new Date().toISOString(),
+  };
 
-  return { message: "Feedback submitted successfully! Thank you." };
+  try {
+    const filePath = path.join(process.cwd(), 'src', 'data', 'feedback.json');
+    let feedbackData = [];
+    try {
+        const fileContents = await fs.readFile(filePath, 'utf-8');
+        feedbackData = JSON.parse(fileContents);
+    } catch (error) {
+        // File might not exist yet, which is fine.
+    }
+
+    feedbackData.push(newFeedback);
+    await fs.writeFile(filePath, JSON.stringify(feedbackData, null, 2));
+
+    return { message: "Feedback submitted successfully! Thank you." };
+
+  } catch (error) {
+    console.error("Error saving feedback:", error);
+    return {
+        errors: { _form: ["An unexpected error occurred while saving your feedback."] }
+    }
+  }
 }

@@ -1,0 +1,21 @@
+
+[
+  {
+    "Role": "Machine Learning Intern",
+    "Company": "Tech Innovations Inc.",
+    "Duration": "Summer 2023",
+    "Description": "Developed and evaluated models for image classification, achieving a 15% improvement in accuracy over baseline."
+  },
+  {
+    "Role": "Freelance Web Developer",
+    "Client": "Local Businesses",
+    "Duration": "2022 - Present",
+    "Description": "Built and maintained responsive websites and e-commerce solutions for various clients. Specialized in React and Node.js."
+  },
+   {
+    "Role": "Software Engineer",
+    "Company": "Innovate Solutions",
+    "Duration": "2020 - 2022",
+    "Description": "Worked on a large-scale data processing pipeline using Apache Spark and Kafka."
+  }
+]
