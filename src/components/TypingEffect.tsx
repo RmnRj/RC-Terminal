@@ -10,7 +10,7 @@ interface TypingEffectProps {
 
 const TypingEffect: React.FC<TypingEffectProps> = ({
   text,
-  speed = 50,
+  speed = 20,
   onFinished,
 }) => {
   const [displayedText, setDisplayedText] = useState("");
@@ -35,7 +35,8 @@ const TypingEffect: React.FC<TypingEffectProps> = ({
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key === "Enter" || e.key === "Escape") {
+        e.preventDefault();
         setIsSkipped(true);
       }
     };
