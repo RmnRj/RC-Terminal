@@ -120,15 +120,18 @@ export const getSuggestions = (input: string, variables: Record<string, any>): s
 
     const commandsWithArgs = ['open', 'printcopy'];
 
-    // Regex to match a command with parentheses and capture the content inside
-    const commandRegex = /^(\w+)\(([^)]*)$/;
-    const match = input.match(commandRegex);
+  // Regex to match a command with parentheses and capture the content inside.
+  // Allow the input to include a trailing closing parenthesis (user may have typed it already).
+  const commandRegex = /^(\w+)\(([^)]*)\)?$/;
+  const match = input.match(commandRegex);
 
     if (match) {
         const command = match[1];
         const argsPart = match[2];
         const args = argsPart.split(',').map(arg => arg.trim());
-        const currentArg = args[args.length - 1];
+  // Remove surrounding quotes from the current arg for matching
+  let currentArg = args[args.length - 1] || "";
+  currentArg = currentArg.replace(/^['"]+/, "").replace(/['"]+$/, "");
 
         let candidates: string[] = [];
         if (command === 'open') {
@@ -138,10 +141,10 @@ export const getSuggestions = (input: string, variables: Record<string, any>): s
             candidates = [...allDataKeys, ...Object.keys(variables)];
         }
 
-        if (currentArg) {
-            const suggestion = candidates.find(c => c.startsWith(currentArg));
-            return suggestion ? suggestion.substring(currentArg.length) : "";
-        }
+    if (currentArg !== undefined) {
+      const suggestion = candidates.find(c => c.startsWith(currentArg));
+      return suggestion ? suggestion.substring(currentArg.length) : "";
+    }
         return "";
     }
 

@@ -49,9 +49,19 @@ export const useTerminal = () => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (suggestion) {
-        setInput(input + suggestion);
+      if (suggestion && inputRef.current) {
+        const caret = inputRef.current.selectionStart ?? input.length;
+        const newInput = input.slice(0, caret) + suggestion + input.slice(caret);
+        setInput(newInput);
         setSuggestion("");
+        // move caret after inserted suggestion
+        setTimeout(() => {
+          if (inputRef.current) {
+            const pos = caret + (suggestion?.length || 0);
+            inputRef.current.selectionStart = pos;
+            inputRef.current.selectionEnd = pos;
+          }
+        }, 0);
       } else {
         processCommand(input.trim());
       }
@@ -79,10 +89,23 @@ export const useTerminal = () => {
          setLastCommandIndex(commandHistory.length);
       }
     } else if (e.key === "Tab" || e.key === "ArrowRight") {
-        if (suggestion && inputRef.current?.selectionStart === input.length) {
+        if (!suggestion || !inputRef.current) return;
+        const caret = inputRef.current.selectionStart ?? input.length;
+        // allow accepting suggestion when caret at end or right before a closing char like ) or a quote
+        const charAtCaret = input.charAt(caret);
+        const allowAccept = caret === input.length || [")", '"', "'"] .includes(charAtCaret);
+        if (allowAccept) {
             e.preventDefault();
-            setInput(input + suggestion);
+            const newInput = input.slice(0, caret) + suggestion + input.slice(caret);
+            setInput(newInput);
             setSuggestion("");
+            setTimeout(() => {
+              if (inputRef.current) {
+                const pos = caret + (suggestion?.length || 0);
+                inputRef.current.selectionStart = pos;
+                inputRef.current.selectionEnd = pos;
+              }
+            }, 0);
         }
     } else if (e.key === "(") {
         e.preventDefault();
