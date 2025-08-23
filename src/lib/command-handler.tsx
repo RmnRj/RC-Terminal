@@ -1,3 +1,4 @@
+
 "use client";
 
 import React from "react";
@@ -156,7 +157,7 @@ export const getSuggestions = (input: string, variables: Record<string, any>): s
 
     // Determine the list of possible suggestions based on the command.
     if (command === 'open') {
-      candidates = allowedOpenArgs.filter(key => !usedArgSet.has(key.toLowerCase()));
+      candidates = [...Object.keys(variables), ...allowedOpenArgs].filter(key => !usedArgSet.has(key.toLowerCase()));
     } else if (command === 'printcopy') {
       candidates = [...Object.keys(variables), ...allDataKeys];
     }
@@ -297,3 +298,4 @@ export const handleCommand = async (
     return [{ type: "error", content: `Error: command not found: ${command}. Try 'help'.` }];
   }
 };
+
