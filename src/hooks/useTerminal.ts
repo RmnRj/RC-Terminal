@@ -46,7 +46,6 @@ export const useTerminal = () => {
       const currentLines = [...lines, { type: "input" as const, content: commandStr }];
       setLines(currentLines);
 
-      // Start typing animation
       setIsTyping(true);
       const outputLines = await handleCommand(
         commandStr,
@@ -57,33 +56,26 @@ export const useTerminal = () => {
       );
       
       if (outputLines.length > 0) {
-        // Handle non-component output with typing effect
-        const outputContent = outputLines.map(line => {
-            if (line.type === 'output' || line.type === 'success' || line.type === 'error') {
-                if (typeof line.content === 'string') {
-                    return {
-                        ...line,
-                        content: <TypingEffect text={line.content} onFinished={() => setIsTyping(false)} />
-                    };
-                }
+        const outputWithTyping = outputLines.map(line => {
+            if ((line.type === 'output' || line.type === 'success' || line.type === 'error') && typeof line.content === 'string') {
+                return {
+                    ...line,
+                    content: <TypingEffect text={line.content} onFinished={() => setIsTyping(false)} />
+                };
             }
             return line;
         });
 
-        // If there's component output, we can't use the typing effect on it.
-        const componentLine = outputLines.find(line => line.type === 'component');
-        if (componentLine) {
-            setIsTyping(false); // Disable typing effect for components
+        const hasComponent = outputLines.some(line => line.type === 'component');
+        if (hasComponent) {
+            setIsTyping(false);
         }
         
-        setLines((prev) => [...prev, ...outputContent]);
+        setLines((prev) => [...prev, ...outputWithTyping]);
 
       } else {
-         // No output, so we are done typing
          setIsTyping(false);
       }
-
-
     },
     [lines, variables]
   );
