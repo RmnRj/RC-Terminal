@@ -77,7 +77,7 @@ export const useTerminal = () => {
          setIsTyping(false);
       }
     },
-    [lines, variables] 
+    [lines, variables, commandHistory] 
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
