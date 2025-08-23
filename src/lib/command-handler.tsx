@@ -1,4 +1,3 @@
-
 "use client";
 
 import React from "react";
@@ -116,47 +115,83 @@ const allowedOpenArgs = allDataKeys.filter(key => !['profile', 'helpText'].inclu
 const allTopLevelCommands = Object.keys(commands);
 
 
+/**
+ * Provides autocompletion suggestions for commands and their arguments in a TypeScript environment.
+ * @param {string} input - The current user input in the terminal.
+ * @param {Record<string, any>} variables - A dictionary of user-defined variables.
+ * @returns {string} The suggested text (ghost text) to be displayed.
+ */
 export const getSuggestions = (input: string, variables: Record<string, any>): string => {
-    if (!input) return "";
-
-    const commandRegex = /^(\w+)\(([^)]*)$/;
-    const match = input.match(commandRegex);
-
-    // Case 1: Typing inside parentheses, e.g., "open(edu"
-    if (match) {
-        const command = match[1];
-        const argsPart = match[2];
-        const args = argsPart.split(',').map(arg => arg.trim());
-        const currentArg = args[args.length - 1];
-
-        let candidates: string[] = [];
-        if (command === 'open') {
-            const usedArgs = new Set(args.slice(0, -1));
-            candidates = allowedOpenArgs.filter(key => !usedArgs.has(key));
-        } else if (command === 'printcopy') {
-            candidates = [...Object.keys(variables), ...allDataKeys];
-        }
-
-        if (currentArg !== undefined) {
-            const suggestion = candidates.find(c => c.startsWith(currentArg));
-            return suggestion ? suggestion.substring(currentArg.length) : "";
-        }
-        return "";
-    }
-
-    // Case 2: Typing a command name, e.g., "ope"
-    const commandCandidates = [...allTopLevelCommands, ...Object.keys(variables)];
-    const suggestion = commandCandidates.find(c => c.startsWith(input));
-
-    if (suggestion) {
-        const remaining = suggestion.substring(input.length);
-        if (commandsWithArgs.includes(suggestion) && input === suggestion) {
-            return "()";
-        }
-        return remaining;
-    }
-
+  if (!input) {
     return "";
+  }
+
+  // Regex to match an incomplete command with arguments, e.g., "open(arg1, ar"
+  const commandRegex = /^(\w+)\(([^)]*)$/;
+  const match: RegExpMatchArray | null = input.match(commandRegex);
+
+  // Case 1: The user is typing inside the parentheses of a command.
+  if (match) {
+    // Safely destructure the results from the regex match.
+    const [, commandRaw, argsPart] = match;
+
+    // Type guard to ensure the captured groups are strings.
+    if (typeof commandRaw !== 'string' || typeof argsPart !== 'string') {
+      return "";
+    }
+
+    const command: string = commandRaw.toLowerCase();
+
+    // Split the string inside the parentheses by commas to get individual arguments.
+    const allArgs: string[] = argsPart.split(',').map(arg => arg.trim());
+    
+    // The argument the user is currently typing is the last one in the array.
+    const currentTypingArg: string | undefined = allArgs[allArgs.length - 1];
+    
+    // Arguments that are already fully typed are all arguments except the last one.
+    const completedArgs: string[] = allArgs.slice(0, -1);
+    const usedArgSet: Set<string> = new Set(completedArgs.map(arg => arg.toLowerCase()).filter(Boolean));
+
+    let candidates: string[] = [];
+
+    // Determine the list of possible suggestions based on the command.
+    if (command === 'open') {
+      candidates = allowedOpenArgs.filter(key => !usedArgSet.has(key.toLowerCase()));
+    } else if (command === 'printcopy') {
+      candidates = [...Object.keys(variables), ...allDataKeys];
+    }
+
+    // currentTypingArg can be an empty string "" but not undefined here
+    if (typeof currentTypingArg === 'string') {
+      if (currentTypingArg) { // User has started typing the argument
+        const suggestion = candidates.find(c => c.toLowerCase().startsWith(currentTypingArg.toLowerCase()));
+        if (suggestion) {
+          return suggestion.substring(currentTypingArg.length);
+        }
+      } else { // Current argument is empty (e.g., after a comma)
+        if (candidates.length > 0) {
+          return candidates[0];
+        }
+      }
+    }
+    
+    return "";
+  }
+
+  // Case 2: The user is typing a command name itself.
+  const commandCandidates: string[] = [...allTopLevelCommands, ...Object.keys(variables)];
+  const suggestion: string | undefined = commandCandidates.find(c => c.toLowerCase().startsWith(input.toLowerCase()));
+
+  if (suggestion) {
+    const remaining: string = suggestion.substring(input.length);
+    // Removed the automatic closing bracket feature.
+    // if (commandsWithArgs.includes(suggestion.toLowerCase()) && input.toLowerCase() === suggestion.toLowerCase()) {
+    //   return "()";
+    // }
+    return remaining;
+  }
+
+  return "";
 };
 
 

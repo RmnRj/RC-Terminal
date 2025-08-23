@@ -82,16 +82,6 @@ export const useTerminal = () => {
             setInput(input + suggestion);
             setSuggestion("");
         }
-    } else if (e.key === "(") {
-        e.preventDefault();
-        const newInputValue = input + "()";
-        setInput(newInputValue);
-        setTimeout(() => {
-          if (inputRef.current) {
-            inputRef.current.selectionStart = newInputValue.length - 1;
-            inputRef.current.selectionEnd = newInputValue.length - 1;
-          }
-        }, 0);
     }
   };
   
