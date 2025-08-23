@@ -121,7 +121,8 @@ export const useTerminal = () => {
     } else if (e.key === "Tab" || (e.key === "ArrowRight" && inputRef.current && inputRef.current.selectionStart === input.length)) {
         if (!suggestion) return;
         e.preventDefault();
-        setInput(input + suggestion);
+        const fullCommand = input + suggestion;
+        setInput(fullCommand);
         setSuggestion("");
     }
   };
