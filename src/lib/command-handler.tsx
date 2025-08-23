@@ -110,57 +110,52 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
   },
 };
 
-const allCommands = Object.keys(commands);
+const commandsWithArgs = ['open', 'printcopy'];
 const allDataKeys = Object.keys(content);
-const allowedOpenArgs = allDataKeys.filter(key => key !== 'profile' && key !== 'helpText');
+const allowedOpenArgs = allDataKeys.filter(key => !['profile', 'helpText'].includes(key));
+const allTopLevelCommands = Object.keys(commands);
 
 
 export const getSuggestions = (input: string, variables: Record<string, any>): string => {
     if (!input) return "";
 
-    const commandsWithArgs = ['open', 'printcopy'];
+    const commandRegex = /^(\w+)\(([^)]*)$/;
+    const match = input.match(commandRegex);
 
-  // Regex to match a command with parentheses and capture the content inside.
-  // Allow the input to include a trailing closing parenthesis (user may have typed it already).
-  const commandRegex = /^(\w+)\(([^)]*)\)?$/;
-  const match = input.match(commandRegex);
-
+    // Case 1: Typing inside parentheses, e.g., "open(edu"
     if (match) {
         const command = match[1];
         const argsPart = match[2];
         const args = argsPart.split(',').map(arg => arg.trim());
-  // Remove surrounding quotes from the current arg for matching
-  let currentArg = args[args.length - 1] || "";
-  currentArg = currentArg.replace(/^['"]+/, "").replace(/['"]+$/, "");
+        const currentArg = args[args.length - 1];
 
         let candidates: string[] = [];
         if (command === 'open') {
             const usedArgs = new Set(args.slice(0, -1));
             candidates = allowedOpenArgs.filter(key => !usedArgs.has(key));
         } else if (command === 'printcopy') {
-            candidates = [...allDataKeys, ...Object.keys(variables)];
+            candidates = [...Object.keys(variables), ...allDataKeys];
         }
 
-    if (currentArg !== undefined) {
-      const suggestion = candidates.find(c => c.startsWith(currentArg));
-      return suggestion ? suggestion.substring(currentArg.length) : "";
-    }
+        if (currentArg !== undefined) {
+            const suggestion = candidates.find(c => c.startsWith(currentArg));
+            return suggestion ? suggestion.substring(currentArg.length) : "";
+        }
         return "";
     }
 
-    // This handles top-level command suggestions
-    const commandCandidates = [...allCommands, ...Object.keys(variables)];
+    // Case 2: Typing a command name, e.g., "ope"
+    const commandCandidates = [...allTopLevelCommands, ...Object.keys(variables)];
     const suggestion = commandCandidates.find(c => c.startsWith(input));
 
     if (suggestion) {
-        // If the suggestion is a command that takes arguments and the user has typed the full command name
+        const remaining = suggestion.substring(input.length);
         if (commandsWithArgs.includes(suggestion) && input === suggestion) {
             return "()";
         }
-        // Otherwise, suggest the rest of the command/variable name
-        return suggestion.substring(input.length);
+        return remaining;
     }
-    
+
     return "";
 };
 
@@ -233,22 +228,37 @@ export const handleCommand = async (
   }
 
   const [, command, argsString] = match;
-  const cmdFunc = commands[command.toLowerCase()];
+  let finalArgsString = argsString;
 
-  if (cmdFunc) {
-      const args = (argsString === undefined || argsString === null || argsString.trim() === '') 
-        ? [] 
-        : argsString.split(",").map((arg) => arg.trim().replace(/^['"]|['"]$/g, ""));
-      return cmdFunc(args, variables, setVariables);
+  // If the command ends with ')' but argsString is undefined, it means empty args like command()
+  if (trimmedCommand.endsWith(')') && argsString === undefined) {
+      finalArgsString = '';
+  }
+
+  if (finalArgsString === undefined || finalArgsString === null) {
+      // Command without parentheses
+      const cmdFunc = commands[command.toLowerCase()];
+      if (cmdFunc) {
+          return cmdFunc([], variables, setVariables);
+      }
   } else {
-    try {
-      const result = await generateReasonedErrorMessage({
-        unexpectedValue: trimmedCommand,
-        context: "User tried to run a command in the terminal.",
-      });
-      return [{ type: "error", content: result.errorMessage }];
-    } catch (e) {
-      return [{ type: "error", content: `Error: command not found: ${command}. Try 'help'.` }];
-    }
+      // Command with parentheses
+      const cmdFunc = commands[command.toLowerCase()];
+      if (cmdFunc) {
+          const args = finalArgsString.trim() === '' 
+            ? [] 
+            : finalArgsString.split(",").map((arg) => arg.trim().replace(/^['"]|['"]$/g, ""));
+          return cmdFunc(args, variables, setVariables);
+      }
+  }
+
+  try {
+    const result = await generateReasonedErrorMessage({
+      unexpectedValue: trimmedCommand,
+      context: "User tried to run a command in the terminal.",
+    });
+    return [{ type: "error", content: result.errorMessage }];
+  } catch (e) {
+    return [{ type: "error", content: `Error: command not found: ${command}. Try 'help'.` }];
   }
 };

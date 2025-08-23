@@ -129,7 +129,7 @@ export function Terminal() {
               {suggestion && input && (
                 <div className="absolute left-[calc(1ch+1rem)] top-0 text-muted-foreground/50 pointer-events-none">
                   <span className="invisible">{input}</span>
-                  <span>{suggestion.substring(input.length)}</span>
+                  <span>{suggestion}</span>
                 </div>
               )}
             </div>

@@ -49,22 +49,7 @@ export const useTerminal = () => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      if (suggestion && inputRef.current) {
-        const caret = inputRef.current.selectionStart ?? input.length;
-        const newInput = input.slice(0, caret) + suggestion + input.slice(caret);
-        setInput(newInput);
-        setSuggestion("");
-        // move caret after inserted suggestion
-        setTimeout(() => {
-          if (inputRef.current) {
-            const pos = caret + (suggestion?.length || 0);
-            inputRef.current.selectionStart = pos;
-            inputRef.current.selectionEnd = pos;
-          }
-        }, 0);
-      } else {
-        processCommand(input.trim());
-      }
+      processCommand(input.trim());
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       if (commandHistory.length > 0) {
@@ -91,21 +76,11 @@ export const useTerminal = () => {
     } else if (e.key === "Tab" || e.key === "ArrowRight") {
         if (!suggestion || !inputRef.current) return;
         const caret = inputRef.current.selectionStart ?? input.length;
-        // allow accepting suggestion when caret at end or right before a closing char like ) or a quote
-        const charAtCaret = input.charAt(caret);
-        const allowAccept = caret === input.length || [")", '"', "'"] .includes(charAtCaret);
-        if (allowAccept) {
+        // Allow accepting suggestion only when the caret is at the end of the input
+        if (suggestion && caret === input.length) {
             e.preventDefault();
-            const newInput = input.slice(0, caret) + suggestion + input.slice(caret);
-            setInput(newInput);
+            setInput(input + suggestion);
             setSuggestion("");
-            setTimeout(() => {
-              if (inputRef.current) {
-                const pos = caret + (suggestion?.length || 0);
-                inputRef.current.selectionStart = pos;
-                inputRef.current.selectionEnd = pos;
-              }
-            }, 0);
         }
     } else if (e.key === "(") {
         e.preventDefault();
