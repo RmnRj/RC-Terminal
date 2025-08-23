@@ -1,21 +1,33 @@
+
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { handleCommand, getSuggestions, Line } from "@/lib/command-handler";
+import TypingEffect from "@/components/TypingEffect";
 
 export const useTerminal = () => {
-  const [lines, setLines] = useState<Line[]>([
-    {
-      type: "output",
-      content: "Welcome to RC Terminal. Type 'help' for a list of commands.",
-    },
-  ]);
+  const [lines, setLines] = useState<Line[]>([]);
   const [input, setInput] = useState("");
   const [suggestion, setSuggestion] = useState("");
   const [commandHistory, setCommandHistory] = useState<string[]>([]);
   const [lastCommandIndex, setLastCommandIndex] = useState(0);
   const [variables, setVariables] = useState<Record<string, any>>({});
+  const [isTyping, setIsTyping] = useState(true);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setLines([
+      {
+        type: "output",
+        content: (
+          <TypingEffect
+            text="Welcome to RC Terminal. Type 'help' for a list of commands."
+            onFinished={() => setIsTyping(false)}
+          />
+        ),
+      },
+    ]);
+  }, []);
 
   const addToHistory = (command: string) => {
     if (command.trim() === "") return;
@@ -34,14 +46,44 @@ export const useTerminal = () => {
       const currentLines = [...lines, { type: "input" as const, content: commandStr }];
       setLines(currentLines);
 
-      const newLines = await handleCommand(
+      // Start typing animation
+      setIsTyping(true);
+      const outputLines = await handleCommand(
         commandStr,
         variables,
         setVariables,
         lines,
         setLines
       );
-      setLines((prev) => [...prev, ...newLines]);
+      
+      if (outputLines.length > 0) {
+        // Handle non-component output with typing effect
+        const outputContent = outputLines.map(line => {
+            if (line.type === 'output' || line.type === 'success' || line.type === 'error') {
+                if (typeof line.content === 'string') {
+                    return {
+                        ...line,
+                        content: <TypingEffect text={line.content} onFinished={() => setIsTyping(false)} />
+                    };
+                }
+            }
+            return line;
+        });
+
+        // If there's component output, we can't use the typing effect on it.
+        const componentLine = outputLines.find(line => line.type === 'component');
+        if (componentLine) {
+            setIsTyping(false); // Disable typing effect for components
+        }
+        
+        setLines((prev) => [...prev, ...outputContent]);
+
+      } else {
+         // No output, so we are done typing
+         setIsTyping(false);
+      }
+
+
     },
     [lines, variables]
   );
@@ -49,9 +91,11 @@ export const useTerminal = () => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
+      if (isTyping) return;
       processCommand(input.trim());
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
+      if (isTyping) return;
       if (commandHistory.length > 0) {
         const newIndex = Math.max(0, lastCommandIndex - 1);
         setInput(commandHistory[newIndex] || "");
@@ -60,6 +104,7 @@ export const useTerminal = () => {
       }
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
+      if (isTyping) return;
       if (lastCommandIndex < commandHistory.length) {
         const newIndex = Math.min(
           commandHistory.length,
@@ -73,15 +118,11 @@ export const useTerminal = () => {
          setSuggestion("");
          setLastCommandIndex(commandHistory.length);
       }
-    } else if (e.key === "Tab" || e.key === "ArrowRight") {
-        if (!suggestion || !inputRef.current) return;
-        const caret = inputRef.current.selectionStart ?? input.length;
-        // Allow accepting suggestion only when the caret is at the end of the input
-        if (suggestion && caret === input.length) {
-            e.preventDefault();
-            setInput(input + suggestion);
-            setSuggestion("");
-        }
+    } else if (e.key === "Tab" || (e.key === "ArrowRight" && inputRef.current && inputRef.current.selectionStart === input.length)) {
+        if (!suggestion) return;
+        e.preventDefault();
+        setInput(input + suggestion);
+        setSuggestion("");
     }
   };
   
@@ -122,5 +163,6 @@ export const useTerminal = () => {
     setLastCommandIndex,
     handleInputChange,
     inputRef,
+    isTyping,
   };
 };
