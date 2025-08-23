@@ -56,7 +56,7 @@ export const useTerminal = () => {
       );
       
       if (outputLines.length > 0) {
-        const outputWithTyping = outputLines.map(line => {
+        const outputWithTyping = outputLines.map((line: Line) => {
             if ((line.type === 'output' || line.type === 'success' || line.type === 'error') && typeof line.content === 'string') {
                 return {
                     ...line,
@@ -77,7 +77,7 @@ export const useTerminal = () => {
          setIsTyping(false);
       }
     },
-    [lines, variables]
+    [lines, variables] 
   );
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -111,7 +111,7 @@ export const useTerminal = () => {
          setLastCommandIndex(commandHistory.length);
       }
     } else if (e.key === "Tab" || (e.key === "ArrowRight" && inputRef.current && inputRef.current.selectionStart === input.length)) {
-        if (!suggestion) return;
+        if (!suggestion || isTyping) return;
         e.preventDefault();
         const fullCommand = input + suggestion;
         setInput(fullCommand);
