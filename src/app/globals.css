@@ -50,6 +50,25 @@
 }
 
 @layer base {
+  html {
+    /* Mobile first */
+    @apply text-sm;
+  }
+
+  /* Tablet */
+  @media (min-width: 768px) {
+    html {
+      @apply text-base;
+    }
+  }
+
+  /* Desktop */
+  @media (min-width: 1024px) {
+    html {
+      @apply text-base;
+    }
+  }
+  
   * {
     @apply border-border;
   }

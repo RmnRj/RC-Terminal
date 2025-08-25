@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 import { Toaster } from "@/components/ui/toaster";
+import { Source_Code_Pro } from "next/font/google";
 import "./globals.css";
+
+const sourceCodePro = Source_Code_Pro({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-source-code-pro",
+});
 
 export const metadata: Metadata = {
   title: "RC Terminal Portfolio",
@@ -13,6 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
+<<<<<<< HEAD
     <html lang="en">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -26,6 +34,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
+=======
+    <html lang="en" className={`${sourceCodePro.variable} dark`}>
+      <head />
+>>>>>>> 066b5769a8ee022d00f9b76a1087795e6d0c3142
       <body className="font-code antialiased">
         {children}
         <Toaster />
