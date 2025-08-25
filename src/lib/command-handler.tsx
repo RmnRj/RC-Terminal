@@ -38,6 +38,15 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
   help: async () => [
     { type: "output", content: content.helpText },
   ],
+  interface: async () => [
+    { type: "success", content: "Switching to Interface mode... Use the Interface button in the navigation bar." },
+  ],
+  portfolio: async () => [
+    { type: "output", content: "Welcome to my portfolio! Available sections: home, education, gallery, skills, experiences, about, feedback, projects. Use 'interface' command to switch to visual mode." },
+  ],
+  home: async () => [
+    { type: "output", content: "Welcome to my portfolio terminal! I'm a passionate developer creating innovative solutions. Type 'help' for available commands or 'interface' to switch to visual mode." },
+  ],
   open: async (args, variables) => {
     if (args.length === 0 || (args.length === 1 && args[0] === '')) {
       return [{ type: "error", content: "Error: open() requires a section name. Try 'open(projects)'." }];

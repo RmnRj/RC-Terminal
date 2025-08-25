@@ -18,6 +18,9 @@ export {
 };
 
 export const helpText = `Available Commands:
+- portfolio        : Shows portfolio overview and available sections.
+- home             : Welcome message and introduction.
+- interface        : Instructions to switch to visual interface mode.
 - open(section)    : Opens a specific section (e.g., 'projects', 'skills').
 - showName         : Displays full name and title.
 - showContact      : Shows contact information.

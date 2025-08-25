@@ -58,6 +58,26 @@
   }
 }
 
+/* Custom scrollbar styles */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Smooth transitions */
+* {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Terminal font */
+.font-code {
+  font-family: 'Source Code Pro', 'Courier New', monospace;
+}
+
 @media print {
   body * {
     visibility: hidden;
