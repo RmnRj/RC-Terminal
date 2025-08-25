@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Home, GraduationCap, Image, Wrench, Briefcase, User, MessageSquare, FolderOpen } from "lucide-react";
 
@@ -14,6 +15,7 @@ const navItems = [
   { id: "gallery", label: "Gallery", icon: Image },
   { id: "skills", label: "Skills", icon: Wrench },
   { id: "experiences", label: "Experiences", icon: Briefcase },
+  { id: "activities", label: "Activities", icon: User },
   { id: "about", label: "About", icon: User },
   { id: "feedback", label: "Feedback", icon: MessageSquare },
   { id: "projects", label: "Projects", icon: FolderOpen },
@@ -21,7 +23,7 @@ const navItems = [
 
 export function InterfaceNavigation({ activeSection, onSectionChange }: InterfaceNavigationProps) {
   return (
-    <nav className="border-b border-gray-200 bg-white/95 backdrop-blur-sm sticky top-16 z-40">
+    <nav className="border-b border-gray-700 bg-gray-800/95 backdrop-blur-sm sticky top-16 z-40">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-center space-x-1 py-4 overflow-x-auto scrollbar-hide">
           {navItems.map((item) => {
@@ -35,7 +37,7 @@ export function InterfaceNavigation({ activeSection, onSectionChange }: Interfac
                 className={`flex items-center space-x-2 whitespace-nowrap transition-all ${
                   activeSection === item.id
                     ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md"
-                    : "hover:bg-gray-100 text-gray-700"
+                    : "hover:bg-gray-700 text-gray-300"
                 }`}
               >
                 <Icon className="w-4 h-4" />
