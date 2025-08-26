@@ -5,6 +5,15 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "RC Terminal Portfolio",
   description: "A terminal-style personal portfolio for Raman.",
+  icons: {
+    icon: "/Terminal-icon.ico",
+    shortcut: "/Terminal-icon.ico",
+    apple: "/Terminal-icon.ico",
+    other: {
+      rel: "apple-touch-icon-precomposed",
+      url: "/Terminal-icon.ico",
+    },
+  },
 };
 
 export default function RootLayout({
@@ -15,6 +24,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="icon" href="/Terminal-icon.ico" sizes="any" />
+        <link rel="icon" href="/Terminal-icon.ico" type="image/x-icon" />
+        <link rel="shortcut icon" href="/Terminal-icon.ico" />
+        <link rel="apple-touch-icon" href="/Terminal-icon.ico" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

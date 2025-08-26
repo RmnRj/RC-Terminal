@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Home, GraduationCap, Image, Wrench, Briefcase, User, MessageSquare, FolderOpen } from "lucide-react";
+import { Home, GraduationCap, Image, Wrench, Briefcase, User, MessageSquare, FolderOpen, Activity } from "lucide-react";
 
 interface InterfaceNavigationProps {
   activeSection: string;
@@ -15,7 +15,7 @@ const navItems = [
   { id: "gallery", label: "Gallery", icon: Image },
   { id: "skills", label: "Skills", icon: Wrench },
   { id: "experiences", label: "Experiences", icon: Briefcase },
-  { id: "activities", label: "Activities", icon: User },
+  { id: "activities", label: "Activities", icon: Activity },
   { id: "about", label: "About", icon: User },
   { id: "feedback", label: "Feedback", icon: MessageSquare },
   { id: "projects", label: "Projects", icon: FolderOpen },
