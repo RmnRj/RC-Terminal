@@ -13,21 +13,20 @@ export function Terminal() {
     suggestion,
     handleInputChange,
     inputRef: terminalInputRef,
-    isTyping,
   } = useTerminal();
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (terminalInputRef.current && !isTyping) {
+    if (terminalInputRef.current) {
       terminalInputRef.current.focus();
     }
-  }, [isTyping, terminalInputRef]);
+  }, [terminalInputRef]);
 
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [lines, isTyping]);
+  }, [lines]);
   
   const focusInput = () => {
     if (terminalInputRef.current) {
@@ -36,35 +35,44 @@ export function Terminal() {
   };
   
   const renderLine = (line: Line, index: number) => {
+    const safeRenderContent = (content: any) => {
+      if (React.isValidElement(content)) {
+        return content;
+      }
+      if (typeof content === 'string' || typeof content === 'number') {
+        return content;
+      }
+      if (typeof content === 'object' && content !== null) {
+        console.warn('Invalid object passed to terminal:', content);
+        return JSON.stringify(content, null, 2);
+      }
+      return String(content || '');
+    };
+
     switch (line.type) {
       case "input":
         return (
           <div key={index} className="flex items-center">
-            <span className="text-accent mr-2 font-bold">$</span>
-            <span className="flex-1">{line.content}</span>
+            <span className="text-green-400 mr-2 font-bold">$</span>
+            <span className="flex-1 text-white">{safeRenderContent(line.content)}</span>
           </div>
         );
       case "output":
       case "error":
       case "success":
-        const colorClass =
-          line.type === "error"
-            ? "text-destructive"
-            : line.type === "success"
-            ? "text-green-400"
-            : "text-foreground";
-        
+        const colorClass = line.type === "error" ? "text-red-400" : "text-white";
         return (
           <div
             key={index}
             className={`${colorClass} whitespace-pre-wrap`}
           >
-            {line.content}
+            {safeRenderContent(line.content)}
           </div>
         );
       case "component":
-        return <div key={index}>{line.content}</div>;
+        return <div key={index} className="text-white">{safeRenderContent(line.content)}</div>;
       default:
+        console.warn('Unknown line type:', line.type);
         return null;
     }
   };
@@ -77,28 +85,25 @@ export function Terminal() {
       <CardContent className="p-4 flex-1 overflow-y-auto" ref={scrollRef}>
         <div className="flex flex-col gap-2">
           {lines.map(renderLine)}
-          {!isTyping && (
-             <div className="flex items-center relative">
-              <span className="text-accent mr-2 font-bold">$</span>
-              <input
-                ref={terminalInputRef}
-                type="text"
-                value={input}
-                onChange={handleInputChange}
-                onKeyDown={handleKeyDown}
-                className="bg-transparent border-none focus:ring-0 outline-none w-full caret-accent z-10"
-                autoComplete="off"
-                aria-label="Terminal input"
-                disabled={isTyping}
-              />
-              {suggestion && input && (
-                <div className="absolute left-[calc(1ch+1rem)] top-0 text-muted-foreground/50 pointer-events-none">
-                  <span className="invisible">{input}</span>
-                  <span>{suggestion}</span>
-                </div>
-              )}
-            </div>
-          )}
+          <div className="flex items-center relative">
+            <span className="text-green-400 mr-2 font-bold">$</span>
+            <input
+              ref={terminalInputRef}
+              type="text"
+              value={input}
+              onChange={handleInputChange}
+              onKeyDown={handleKeyDown}
+              className="bg-transparent border-none focus:ring-0 outline-none w-full text-white caret-green-400 z-10"
+              autoComplete="off"
+              aria-label="Terminal input"
+            />
+            {suggestion && input && (
+              <div className="absolute left-[calc(1ch+1rem)] top-0 text-gray-500 pointer-events-none">
+                <span className="invisible">{input}</span>
+                <span>{suggestion}</span>
+              </div>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>

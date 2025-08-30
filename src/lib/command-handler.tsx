@@ -12,26 +12,28 @@ export interface Line {
 }
 
 const formatOutput = (title: string, data: any) => {
-  let output = `\n--- ${title.toUpperCase()} ---\n\n`;
+  const lines = [`--- ${title.toUpperCase()} ---`, ""];
+  
   if (Array.isArray(data)) {
-    output += data
-      .map((item) => {
-        if (typeof item === 'object' && item !== null) {
-          return Object.entries(item)
-            .map(([key, value]) => `${key}: ${value}`)
-            .join("\n");
-        }
-        return item;
-      })
-      .join("\n\n");
+    data.forEach((item, index) => {
+      if (typeof item === 'object' && item !== null) {
+        Object.entries(item).forEach(([key, value]) => {
+          lines.push(`${key}: ${String(value)}`);
+        });
+        if (index < data.length - 1) lines.push("");
+      } else {
+        lines.push(String(item));
+      }
+    });
   } else if (typeof data === "object" && data !== null) {
-    output += Object.entries(data)
-      .map(([key, value]) => `${key}: ${value}`)
-      .join("\n");
+    Object.entries(data).forEach(([key, value]) => {
+      lines.push(`${key}: ${String(value)}`);
+    });
   } else {
-    output += data;
+    lines.push(String(data));
   }
-  return output + "\n";
+  
+  return lines;
 };
 
 const commands: { [key: string]: (args: string[], variables: any, setVariables: Function) => Promise<Line[]> } = {
@@ -53,15 +55,28 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
     }
   
     const lines: Line[] = [];
-    for (const section of args) {
-      const trimmedSection = section.trim();
+    for (let i = 0; i < args.length; i++) {
+      const trimmedSection = args[i].trim();
       if (!trimmedSection) continue;
+
+      // Add 3-line gap between sections (except for first section)
+      if (i > 0) {
+        lines.push({ type: "output", content: "" });
+        lines.push({ type: "output", content: "" });
+        lines.push({ type: "output", content: "" });
+      }
 
       const sectionContent = (content as any)[trimmedSection.toLowerCase()];
       if (sectionContent) {
-        lines.push({ type: "output", content: formatOutput(trimmedSection, sectionContent) });
+        const outputLines = formatOutput(trimmedSection, sectionContent);
+        outputLines.forEach(line => {
+          lines.push({ type: "output", content: line });
+        });
       } else if (variables[trimmedSection]) {
-        lines.push({ type: "output", content: formatOutput(trimmedSection, variables[trimmedSection]) });
+        const outputLines = formatOutput(trimmedSection, variables[trimmedSection]);
+        outputLines.forEach(line => {
+          lines.push({ type: "output", content: line });
+        });
       } else {
         lines.push({ type: "error", content: `Error: Section or variable '${trimmedSection}' not found.` });
       }
@@ -70,13 +85,34 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
   },
   showname: async () => [{ type: "output", content: content.profile.fullName }],
   showimage: async () => [{ type: "output", content: "showImage() is not implemented yet." }],
-  showcontact: async () => [{ type: "output", content: formatOutput("Contact", content.contact) }],
-  showactivities: async () => [{ type: "output", content: formatOutput("Activities", content.activities) }],
-  about: async () => [{ type: "output", content: formatOutput("About Me", content.profile.about) }],
-  projects: async () => [{ type: "output", content: formatOutput("Projects", content.projects) }],
-  experience: async () => [{ type: "output", content: formatOutput("Experience", content.experience) }],
-  skills: async () => [{ type: "output", content: formatOutput("Skills", content.skills) }],
-  education: async () => [{ type: "output", content: formatOutput("Education", content.education) }],
+  showcontact: async () => {
+    const lines = formatOutput("Contact", content.contact);
+    return lines.map(line => ({ type: "output" as const, content: line }));
+  },
+  showactivities: async () => {
+    const lines = formatOutput("Activities", content.activities);
+    return lines.map(line => ({ type: "output" as const, content: line }));
+  },
+  about: async () => {
+    const lines = formatOutput("About Me", content.profile.about);
+    return lines.map(line => ({ type: "output" as const, content: line }));
+  },
+  projects: async () => {
+    const lines = formatOutput("Projects", content.projects);
+    return lines.map(line => ({ type: "output" as const, content: line }));
+  },
+  experience: async () => {
+    const lines = formatOutput("Experience", content.experience);
+    return lines.map(line => ({ type: "output" as const, content: line }));
+  },
+  skills: async () => {
+    const lines = formatOutput("Skills", content.skills);
+    return lines.map(line => ({ type: "output" as const, content: line }));
+  },
+  education: async () => {
+    const lines = formatOutput("Education", content.education);
+    return lines.map(line => ({ type: "output" as const, content: line }));
+  },
   history: async () => {
     const history = JSON.parse(localStorage.getItem("commandHistory") || "[]");
     return [{ type: "output", content: history.join("\n") }];
@@ -86,36 +122,67 @@ const commands: { [key: string]: (args: string[], variables: any, setVariables: 
   feedbackforme: async () => [{ type: "error", content: "This command is for administrative use." }],
   printcopy: async (args, variables) => {
     if (args.length === 0 || (args.length === 1 && args[0] === '')) {
-        return [{ type: "error", content: "Usage: printCopy(variableOrSectionName)" }];
+        return [{ type: "error", content: "Usage: printCopy(section1, section2, ...)" }];
     }
     
-    const arg = args[0];
     const disallowedCommands = ['clear', 'history', 'help', 'feedback', 'feedbackforme', 'printcopy'];
-    if (disallowedCommands.includes(arg.toLowerCase())) {
-        return [{ type: "error", content: `Cannot print content from '${arg}'.` }];
-    }
+    let allContent: string[] = [];
 
-    let contentToPrint: any = '';
-    const lowerArg = arg.toLowerCase();
+    for (const arg of args) {
+      const trimmedArg = arg.trim();
+      if (disallowedCommands.includes(trimmedArg.toLowerCase())) {
+        return [{ type: "error", content: `Cannot print content from '${trimmedArg}'.` }];
+      }
 
-    if (variables[arg]) {
-        contentToPrint = variables[arg];
-    } else if ((content as any)[lowerArg]) {
-        contentToPrint = formatOutput(arg, (content as any)[lowerArg]);
-    } else if (commands[lowerArg]) {
-        const lines = await commands[lowerArg]([], variables, () => {});
-        contentToPrint = lines.map(l => l.content).join('\n');
-    } else {
-        return [{ type: "error", content: `Variable or section '${arg}' not found.` }];
+      const lowerArg = trimmedArg.toLowerCase();
+      let sectionContent = '';
+
+      if (variables[trimmedArg]) {
+        sectionContent = `=== ${trimmedArg.toUpperCase()} ===\n\n${variables[trimmedArg]}`;
+      } else if ((content as any)[lowerArg]) {
+        const data = (content as any)[lowerArg];
+        sectionContent = `=== ${trimmedArg.toUpperCase()} ===\n\n`;
+        
+        if (Array.isArray(data)) {
+          data.forEach((item, index) => {
+            if (typeof item === 'object' && item !== null) {
+              Object.entries(item).forEach(([key, value]) => {
+                sectionContent += `${key}: ${String(value)}\n`;
+              });
+              if (index < data.length - 1) sectionContent += '\n';
+            } else {
+              sectionContent += `${String(item)}\n`;
+            }
+          });
+        } else if (typeof data === 'object' && data !== null) {
+          Object.entries(data).forEach(([key, value]) => {
+            sectionContent += `${key}: ${String(value)}\n`;
+          });
+        } else {
+          sectionContent += String(data);
+        }
+      } else {
+        return [{ type: "error", content: `Section '${trimmedArg}' not found.` }];
+      }
+      
+      allContent.push(sectionContent);
     }
 
     const printableDiv = document.createElement('div');
     printableDiv.className = 'printable';
-    printableDiv.innerHTML = `<h1>Printable Copy</h1><pre>${typeof contentToPrint === 'string' ? contentToPrint : JSON.stringify(contentToPrint, null, 2)}</pre>`;
+    printableDiv.innerHTML = `
+      <style>
+        .printable { font-family: 'Courier New', monospace; line-height: 1.6; padding: 20px; }
+        .printable h1 { color: #333; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        .printable pre { white-space: pre-wrap; font-size: 12px; }
+      </style>
+      <h1>Portfolio Information</h1>
+      <pre>${allContent.join('\n\n\n')}</pre>
+    `;
     document.body.appendChild(printableDiv);
     window.print();
     document.body.removeChild(printableDiv);
-    return [{ type: "success", content: "Print dialog opened." }];
+    return [{ type: "success", content: "Print dialog opened with formatted content." }];
   },
 };
 
